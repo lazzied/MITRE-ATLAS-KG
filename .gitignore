@@ -1,0 +1,7 @@
+.vscode/
+.env
+atlas/
+atlas-data/
+__pycache__/
+*.py[cod]
+research papers/
