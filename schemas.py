@@ -1,31 +1,68 @@
 # here we define the entities and relationships that we want to store in neo4j, and the properties of each entity and relationship 
 from dataclasses import dataclass
 from enum import Enum
+
+from pydantic import Field
 from atlas.enums import MitigationLifecyclePhasesType, TechniquePlatformType
-from atlas.schemas import CaseStudy, Mitigation, Tactic, Technique, AtlasRelationship
+from atlas.schemas import ASCII_TEXT, CaseStudyId, MitigationId, TacticId, TechniqueId
 
-    
-@dataclass
-class AISystem():
-    type: TechniquePlatformType
-    description: str
+class PlatformID (Enum):
+    PREDICTIVE = "predictive"
+    GENERATIVE = "generative"
+    AGENTIC = "agentic"
+    ENTERPRISE = "enterprise"
+     
+     
+class LifecyclePhaseID (Enum):
+    DATA_UNDERSTANDING = "data_understanding"
+    DATA_PREPARATION = "data_preparation"
+    MODEL_ENGINEERING = "model_engineering"
+    MODEL_EVALUATION = "model_evaluation"
+    DEPLOYMENT = "deployment"
+    MONITORING = "monitoring"
 
-@dataclass
-class LifecyclePhase():
-    type: MitigationLifecyclePhasesType
-    description:str 
-
-
-class ModelComponentType(Enum):
+class ModelComponentID (Enum):
     TRAINING_SAMPLES = "training_samples"
-    TRAINING_LABElS = "training_labels"
+    TRAINING_LABELS = "training_labels"
     TEST_SAMPLES = "test_samples"
     TEST_LABELS = "test_labels"
     WEIGHTS = "weights"
     OUTPUT = "output"
     
+class SecurityObjectiveID (Enum):
+    CONFIDENTIALITY = "confidentiality"
+    INTEGRITY = "integrity"
+    AVAILABILITY = "availability"
+    
+class AttackPhaseID (Enum):
+    INFERENCE = "inference"
+    TRAINING = "training"
+
+
+@dataclass
+class Platform():
+    id: PlatformID
+    type: TechniquePlatformType
+    description: str
+
+@dataclass
+class LifeCyclePhase():
+    id: LifecyclePhaseID
+    type: MitigationLifecyclePhasesType
+    description:str 
+
+
+class ModelComponentType(Enum):
+    TRAINING_SAMPLES = "Training samples"
+    TRAINING_LABElS = "Training labels"
+    TEST_SAMPLES = "Test samples"
+    TEST_LABELS = "Test labels"
+    WEIGHTS = "Weights"
+    OUTPUT = "Output"
+    
 @dataclass
 class ModelComponent():
+    id: ModelComponentID
     type: ModelComponentType
     description:str
 
@@ -38,6 +75,7 @@ class SecurityObjectiveType(Enum):
 
 @dataclass
 class SecurityObjective():
+    id: SecurityObjectiveID
     type: SecurityObjectiveType
     description:str
     
@@ -47,6 +85,7 @@ class AttackPhaseType(Enum):
     
 @dataclass
 class AttackPhase():
+    id: AttackPhaseID
     type: AttackPhaseType
     description:str
 
@@ -56,19 +95,29 @@ class MitigationCategoryType(Enum):
     DETECTIVE  = "detective"    # this is monitoring; identifies attacks or integrity violations
 
 
-class AtlasRelationshipType(Enum):
-    # define the relationship types between the entities (edges in the graph)
+class RelationshipType(Enum):
+    # define the relationship types between the entities (edges in the graph) an extended version of the ATLAS RELATIONSHIP TYPE
     
     ACHIEVES = "achieves" # technique achieves a tactic
     SPECIALIZES = "specializes" #subtechnique specializes a technique
     MITIGATES = "mitigates" #mitigation mitigates a technique
     DEMONSTRATES = "demonstrates" # use case demonstrates  technique # 
     APPLIES_IN_PHASE = "applies_in_phase" # a mitigation applies in a lifecycle phase # example questions: currently under phase X in the developement, what measures should i take to prevent a breach?
-    APPLIES_TO_SYSTEM = "applies_to_system" # a mitigation applies to an AI system # my project is using generative AI, what mitigations should i implement? and what techniques should i be aware of?
-    HAS_ACCESS_TO = "has_access_to" # a technique to be performed requires access to an AI system component
+    APPLIES_TO_PLATFORM = "applies_to_platform" # a tachnique applies to an platform # my project is using generative AI,what techniques should i be aware of? 
+    HAS_ACCESS_TO = "has_access_to" # a technique to be performed requires access to an platform component
     ALTERS = "alters" # An attacker uses technique to alter a model component
     HAS_SIMILAR_TECHNIQUES_TO = "similar_techniques_to" # a case study is similar to another case study in terms of techniques used
     OCCURS_AT = "occurs_at" # an attack occurs at a certain phase
     TARGETS = "targets" # a technique targets a certain security objective (confidentiality, integrity, availability)
     
     
+ObjectId = (
+    TacticId | TechniqueId | MitigationId | CaseStudyId | PlatformID | LifecyclePhaseID | ModelComponentID | SecurityObjectiveID | AttackPhaseID
+)
+
+class Relationship(): # this is a simplified relationship class from
+    source: ObjectId
+    target: ObjectId
+    relationship_type: RelationshipType
+    description: str | None = Field(None, pattern=ASCII_TEXT)
+    mitigation_type : MitigationCategoryType | None = None
