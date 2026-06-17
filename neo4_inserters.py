@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Any
 
 from atlas.schemas import AtlasExport
+from scripts.classifiers.initialization import get_connections
 from scripts.neo4j_database import Neo4jClient, Neo4jInserter
 from scripts.derived_entities import (
     generate_life_cycle_phase_dataclasses, 
@@ -16,6 +17,11 @@ from scripts.new_entities import (
     generate_model_component_dataclasses,
     generate_security_objective_dataclasses,
 )
+from scripts.classifiers.structural_classifiers.classify_alters import AltersClassifier
+from scripts.classifiers.structural_classifiers.classify_has_access_to import AccessClassifier
+from scripts.classifiers.structural_classifiers.classify_mitigates import MitigationClassifier
+from scripts.classifiers.structural_classifiers.classify_occurs_at import OccursAtClassifier
+from scripts.classifiers.structural_classifiers.classify_violates import ViolatesClassifier
 
 
 class Neo4jDerivedInserter(Neo4jInserter):
@@ -83,6 +89,43 @@ class Neo4jAtlasInserter(Neo4jInserter):
                     self.insert_relationship(relationship)
 
 
+class Neo4jClassifiersInserter(Neo4jInserter):
+    def __init__(self, graph_store, llm):
+        super().__init__(graph_store.client)
+        self.graph_store = graph_store
+        self.llm = llm
+
+    def insert_structural_classifiers_relationships(self, classifier_cls, label: str) -> List[Any]:
+        classifier = classifier_cls(self.graph_store, self.llm)
+        relationships = classifier.process_all_relationships()
+
+        for relationship in relationships:
+            self.insert_relationship(relationship)
+
+        print(f"Inserted/updated {len(relationships)} {label} relationships.")
+        return relationships
+
+    def insert_alters_relationships(self):
+        return self.insert_structural_classifiers_relationships(AltersClassifier, "ALTERS")
+
+    def insert_has_access_to_relationships(self):
+        return self.insert_structural_classifiers_relationships(AccessClassifier, "HAS_ACCESS_TO")
+
+    def update_mitigates_relationships(self):
+        return self.insert_structural_classifiers_relationships(MitigationClassifier, "MITIGATES")
+
+    def insert_occurs_at_relationships(self):
+        return self.insert_structural_classifiers_relationships(OccursAtClassifier, "OCCURS_AT")
+
+    def insert_violates_relationships(self):
+        return self.insert_structural_classifiers_relationships(ViolatesClassifier, "VIOLATES")
+
+    def insert_all_structural_classifiers_relationships(self) -> None:
+        self.insert_has_access_to_relationships()
+        self.insert_alters_relationships()
+        self.insert_occurs_at_relationships()
+        self.insert_violates_relationships()
+        self.update_mitigates_relationships()
 
 
 if __name__ == "__main__":

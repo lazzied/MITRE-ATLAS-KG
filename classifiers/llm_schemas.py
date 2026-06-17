@@ -1,0 +1,158 @@
+from typing import Dict, List
+from pydantic import BaseModel, Field
+from atlas.schemas import TechniqueId
+from scripts.schemas import AttackPhaseID, MitigationCategoryType, ModelComponentID, SecurityObjectiveID
+
+
+class ViolatesRelationshipSchema(BaseModel):
+    """
+    Represents a single discovered violation link pointing to an impacted security objective.
+    """
+    source_entity: TechniqueId = Field(
+        description="The source ATLAS Technique identifier from which this structural violation originates."
+    )
+    target_entity: SecurityObjectiveID = Field(
+        description="The target Security Objective node that this technique violates."
+    )
+    descriptions: List[str] = Field(
+        description="A list containing one or more exact predefined description strings corresponding to this objective type."
+    )
+    reasoning: str = Field(
+        description="Clear, text-grounded cybersecurity reasoning detailing how the technique achieves these specific impacts."
+    )
+
+
+class ViolatesResponseSchema(BaseModel):
+    """
+    The full payload structure returned from Mistral containing all mapped security objective entity_relationships.
+    """
+    entity_relationships: List[ViolatesRelationshipSchema] = Field(
+        description="List of valid VIOLATES relationships directly supported by graph context. Omit objectives with no active violation."
+    )
+    reasoning: str = Field(
+        description="High-level cognitive logic tracking the overall evaluation process across tactics and case studies."
+    )
+
+
+class OccursAtRelationshipSchema(BaseModel):
+    """
+    Represents a single discovered lifecycle orientation link pointing to an attack phase.
+    """
+    source_entity: TechniqueId = Field(
+        description="The source ATLAS Technique identifier from which this operational relationship originates."
+    )
+    target_entity: AttackPhaseID = Field(
+        description="The specific Attack Phase node where the technique executes (training or inference)."
+    )
+    description: str = Field(
+        description="A clear, structural architectural justification explaining why this technique targets this specific lifecycle node."
+    )
+    reasoning: str = Field(
+        description="A brief sentence connecting the technique description or case study lifecycle details directly to this phase."
+    )
+
+class OccursAtResponseSchema(BaseModel):
+    """
+    The full payload structure returned from Mistral containing all discovered operational entity_relationships.
+    """
+    entity_relationships: List[OccursAtRelationshipSchema] = Field(
+        description="List of valid OCCURS_AT relationships directly supported by graph data. Must contain at least one phase."
+    )
+    reasoning: str = Field(
+        description="High-level lifecycle logic tracking whether the attack occurs pre-deployment or post-deployment."
+    )
+
+
+class MitigationRelationshipSchema(BaseModel):
+    """
+    Represents a single discovered mitigation connection mapping into defense categories.
+    """
+    source_entity: str = Field(
+        description="The source identifier (e.g., Mitigation ID or Technique ID) from which this relationship originates."
+    )
+    target_entity: str = Field(
+        description="The target identifier being evaluated under this mitigation coverage constraint."
+    )
+    categories: List[MitigationCategoryType] = Field(
+        description="List of applicable category types for this MITIGATES relationship. Multiple entries are only allowed if there is strong, undeniable evidence."
+    )
+    
+    description: str = Field(
+        description="A clear, compiled structural summary explaining the overall mitigation strategy for this link."
+    )
+    reasoning: str = Field(
+        description="Brief sentence connecting the graph context evidence or security control parameters directly to this mapping."
+    )
+
+
+class MitigationResponseSchema(BaseModel):
+    """
+    The full payload structure returned containing all mapped mitigation entity_relationships.
+    """
+    entity_relationships: List[MitigationRelationshipSchema] = Field(
+        description="List of valid MITIGATES relationships directly supported by graph data. Omit edges with no clear defensive coverage."
+    )
+    reasoning: str = Field(
+        description="Overall high-level cybersecurity logical justification for the classification choices."
+    )
+    
+class HasAccessToRelationshipSchema(BaseModel):
+    """
+    Represents a single discovered lifecycle orientation link pointing to an access requirement.
+    """
+    source_entity: TechniqueId = Field(
+        description="The source ATLAS Technique identifier from which this access relationship originates."
+    )
+    target_entity: ModelComponentID = Field(
+        description="The specific Model Component node the technique requires or benefits from access to."
+    )
+    required: bool = Field(
+        description="True if the technique absolutely cannot be performed without it. False if it is optional, conditional, or helpful."
+    )
+    description: str = Field(
+        description="A clear, structural architectural justification explaining why this technique targets this specific lifecycle node."
+    )
+    reasoning: str = Field(
+        description="Brief explanation highlighting how the technique uses this component, drawing from descriptions or case study metrics."
+    )
+
+class HasAccessToResponseSchema(BaseModel):
+    entity_relationships: List[HasAccessToRelationshipSchema] = Field(
+        description="List of valid HAS_ACCESS_TO connections. Omit any components that fall under 'No relationship'."
+    )
+    reasoning: str = Field(
+        description="High-level evaluation logic tying the graph context evidence to the final component mappings."
+    )
+
+
+class AltersRelationshipSchema(BaseModel):
+    """
+    Represents a single discovered modification link pointing to an impacted model component.
+    """
+    source_entity: TechniqueId = Field(
+        description="The source ATLAS Technique identifier from which this access relationship originates."
+    )
+    
+    target_entity: ModelComponentID = Field(
+        description="The specific Model Component node that is altered, modified, poisoned, or perturbed by the technique."
+    )
+    
+    description: str = Field(
+        description="A clear, structural architectural justification explaining why this technique targets this specific lifecycle node."
+    )
+    
+    reasoning: str = Field(
+        description="Brief explanation highlighting how the technique alters or manipulates this component based on graph context data."
+    )
+
+
+class AltersResponseSchema(BaseModel):
+    """
+    The full payload structure returned from Mistral containing all discovered model target components.
+    """
+    entity_relationships: List[AltersRelationshipSchema] = Field(
+        description="List of valid ALTERS connections. Omit any components that fall under 'Not required' / 'No relationship'."
+    )
+    reasoning: str = Field(
+        description="High-level evaluation logic tying the graph context evidence to the final component alteration mappings."
+    )

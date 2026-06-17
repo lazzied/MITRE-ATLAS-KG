@@ -38,8 +38,6 @@ class Neo4jInserter:
         AtlasRelationshipType.ACHIEVES: "ACHIEVES",
         AtlasRelationshipType.SPECIALIZES: "SUBTECHNIQUE_OF",
         AtlasRelationshipType.MITIGATES: "MITIGATES",
-        AtlasRelationshipType.EMPLOYS: "DEMONSTRATES",
-        RelationshipType.ACHIEVES: "ACHIEVES",
         RelationshipType.SPECIALIZES: "SUBTECHNIQUE_OF",
         RelationshipType.MITIGATES: "MITIGATES",
         RelationshipType.DEMONSTRATES: "DEMONSTRATES",
@@ -47,7 +45,8 @@ class Neo4jInserter:
         RelationshipType.APPLIES_IN_PHASE: "APPLIES_IN_PHASE",
         RelationshipType.HAS_ACCESS_TO: "HAS_ACCESS_TO",
         RelationshipType.ALTERS: "ALTERS",
-        RelationshipType.HAS_SIMILAR_TECHNIQUES_TO: "HAS_SIMILAR_TECHNIQUES_TO",
+        RelationshipType.IS_SIMILAR_TO: "IS_SIMILAR_TO",
+        RelationshipType.SIMILAR_TO: "SIMILAR_TO",
         RelationshipType.OCCURS_AT: "OCCURS_AT",
         RelationshipType.VIOLATES: "VIOLATES",
     }
@@ -102,6 +101,10 @@ class Neo4jInserter:
                 ]
             if relationship.required is not None:
                 props["required"] = relationship.required
+            if relationship.similar_to_coef is not None:
+                props["similar_to_coef"] = relationship.similar_to_coef
+            if relationship.justification:
+                props["justification"] = relationship.justification
 
         # Case B: Handle standard core AtlasRelationship components
         else:

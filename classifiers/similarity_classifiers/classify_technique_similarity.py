@@ -1,54 +1,40 @@
 import time
-from typing import Dict, Any, Set, List
+from typing import Dict, Any, List
 from pydantic import BaseModel, Field
 from llama_index.core.program import LLMTextCompletionProgram
 from scripts.classifiers.context_queries import TECHNIQUE_SIMILARITY_QUERY
 from scripts.classifiers.initialization import get_connections
-from scripts.classifiers.prompts import SIMILARITY_JUSTIFICATION_PROMPT
+from scripts.classifiers.interface import BaseRelationshipClassifier
+from scripts.classifiers.prompts import TECHNIQUE_SIMILARITY_PROMPT
 from scripts.schemas import Relationship, RelationshipType
+from atlas.schemas import TechniqueId
 
-class SimilarityJustification(BaseModel):
-    """
-    Structured payload contract from the LLM validating structural similarity traits.
-    """
-    justification: str = Field(
+class TechniqueSimilarityRelationshipSchema():
+    component_id: TechniqueId
+    similarity_coeff: float
+    reasoning: str = Field( description= "")
+
+        
+
+class TechniqueSimilarityLLMResponseSchema(BaseModel):
+    
+    reasoning: str = Field(
         description="A concise summary explaining why these two techniques are functionally similar based on their shared model components, visibility pre-requisites, lifecycle phases, and tactics."
-    )
-
-class TechniqueSimilarityCalculator:
+    )   
+    
+class TechniqueSimilarityClassification(BaseRelationshipClassifier):
     """
     Computes a pairwise similarity matrix across ATLAS techniques using Jaccard indices, 
     and applies a generative LLM layer to justify and build the SIMILAR_TO relationship.
     """
-    def __init__(self, graph_store, llm=None):
-        self.graph_store = graph_store
-        self.llm = llm
+    def __init__(self, graph_store, llm,similarity_calculations):
+        super().__init__(graph_store, llm)
+        self.context_cypher_read = TECHNIQUE_SIMILARITY_QUERY  
+        self.prompt_template = TECHNIQUE_SIMILARITY_PROMPT   
         
-        # Jaccard index weight assignments
-        self.weight_alters = 0.35       # Active modification footprint in the ML pipeline
-        self.weight_access = 0.35       # Prerequisite infrastructure visibility
-        self.weight_occurs_at = 0.15    # Environment timeline context (Training vs Inference)
-        self.weight_achieves = 0.15     # Strategic tactical objective alignment
+        self.similarity_calculations =  similarity_calculations
         
-        # Hierarchical proximity adjustments
-        self.sibling_hierarchy_boost = 0.15
-
-    def calculate_jaccard_index(self, set_a: Set[Any], set_b: Set[Any]) -> float:
-        """
-        Calculates the Jaccard similarity index between two standard Python sets.
-        
-        $$J(A, B) = \frac{|A \cap B|}{|A \cup B|}$$
-        """
-        if len(set_a) == 0 and len(set_b) == 0:
-            return 1.0
-        if len(set_a) == 0 or len(set_b) == 0:
-            return 0.0
-        
-        overlapping_elements = set_a.intersection(set_b)
-        all_unique_elements = set_a.union(set_b)
-        return len(overlapping_elements) / len(all_unique_elements)
-
-    def fetch_technique_relationships(self, technique_id: str) -> Dict[str, Any] | None:
+    def build_context(self, technique_id: str) -> Dict[str, Any] | None:
         """
         Queries Neo4j via the unified graph client to fetch all target structural features.
         """
@@ -59,6 +45,7 @@ class TechniqueSimilarityCalculator:
             return None
             
         database_record = records[0]
+        
         return {
             "tech_id": database_record["tech_id"],
             "achieves_set": set(database_record.get("associated_tactics", []) or []),
@@ -68,59 +55,7 @@ class TechniqueSimilarityCalculator:
             "parent_id": database_record.get("parent_id")
         }
 
-    def calculate_base_weighted_score(self, overlaps: Dict[str, float]) -> float:
-        """
-        Performs the dimensional matrix multiplication across risk vectors.
-        """
-        return (
-            (self.weight_alters * overlaps["alters_overlap"]) +
-            (self.weight_access * overlaps["access_overlap"]) +
-            (self.weight_occurs_at * overlaps["occurs_at_overlap"]) +
-            (self.weight_achieves * overlaps["achieves_overlap"])
-        )
-
-    def apply_hierarchical_adjustments(self, base_score: float, are_siblings: bool) -> float:
-        """
-        Calculates parent node inheritance bonuses and caps the absolute metric.
-        """
-        if not are_siblings:
-            return base_score
-        final_score = base_score + self.sibling_hierarchy_boost
-        return min(final_score, 1.0)
-
-    def compute_technique_similarity(self, technique_id_1: str, technique_id_2: str) -> Dict[str, Any]:
-        """
-        Retrieves the profile vectors of both techniques, evaluates dimensional weights, 
-        and calculates structural similarity adjusted for subtechnique hierarchies.
-        """
-        profile_1 = self.fetch_technique_relationships(technique_id_1)
-        profile_2 = self.fetch_technique_relationships(technique_id_2)
-
-        if profile_1 is None:
-            raise ValueError(f"Technique ID '{technique_id_1}' was not found in the database.")
-        if profile_2 is None:
-            raise ValueError(f"Technique ID '{technique_id_2}' was not found in the database.")
-
-        overlaps = {
-            "alters_overlap": self.calculate_jaccard_index(profile_1["alters_set"], profile_2["alters_set"]),
-            "access_overlap": self.calculate_jaccard_index(profile_1["access_set"], profile_2["access_set"]),
-            "occurs_at_overlap": self.calculate_jaccard_index(profile_1["occurs_at_set"], profile_2["occurs_at_set"]),
-            "achieves_overlap": self.calculate_jaccard_index(profile_1["achieves_set"], profile_2["achieves_set"])
-        }
-
-        weighted_base_score = self.calculate_base_weighted_score(overlaps)
-        are_siblings = profile_1["parent_id"] is not None and profile_1["parent_id"] == profile_2["parent_id"]
-        final_similarity_score = self.apply_hierarchical_adjustments(weighted_base_score, are_siblings)
-
-        return {
-            "comparison_pair": (technique_id_1, technique_id_2),
-            "profiles": (profile_1, profile_2),
-            "base_score": round(weighted_base_score, 4),
-            "final_score": round(final_similarity_score, 4),
-            "is_sibling_subtechnique": are_siblings,
-            "metric_breakdown": {key: round(val, 4) for key, val in overlaps.items()}
-        }
-
+    
     def process_single_relationship(self, technique_id_1: str, technique_id_2: str) -> Relationship | None:
         """
         Executes mathematical matrix indexing, generates an LLM contextual justification text,
@@ -129,19 +64,21 @@ class TechniqueSimilarityCalculator:
         if self.llm is None:
             raise ValueError("An LLM instance must be provided to run process_single_relationship.")
 
-        analysis = self.compute_technique_similarity(technique_id_1, technique_id_2)
+        analysis = self.similarity_calculations.compute_technique_similarity(technique_id_1, technique_id_2)
+        
+        
         final_coef = analysis["final_score"]
 
         program = LLMTextCompletionProgram.from_defaults(
-            output_cls=SimilarityJustification,
-            prompt_template_str=SIMILARITY_JUSTIFICATION_PROMPT,
+            output_cls=TechniqueSimilarityLLMResponseSchema,
+            prompt_template_str=TECHNIQUE_SIMILARITY_PROMPT,
             llm=self.llm,
             verbose=False
         )
 
         for attempt in range(3):
             try:
-                llm_output: SimilarityJustification = program(
+                llm_output: TechniqueSimilarityLLMResponseSchema = program(
                     technique_id_1=technique_id_1,
                     technique_id_2=technique_id_2,
                     final_score=final_coef,
@@ -180,7 +117,7 @@ class TechniqueSimilarityCalculator:
                 continue
                 
             try:
-                score_meta = self.compute_technique_similarity(target_technique_id, current_id)
+                score_meta = self.similarity_calculations.compute_technique_similarity(target_technique_id, current_id)
                 candidates.append((current_id, score_meta["final_score"]))
             except Exception:
                 continue
@@ -231,7 +168,7 @@ class TechniqueSimilarityCalculator:
 
 if __name__ == "__main__":
     graph_store, llm = get_connections()
-    calculator = TechniqueSimilarityCalculator(graph_store, llm)
+    calculator = TechniqueSimilarityClassification(graph_store, llm)
     
     try:
         target_tech = "AML.T0051.002"

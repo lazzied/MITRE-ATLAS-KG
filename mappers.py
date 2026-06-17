@@ -61,50 +61,6 @@ PLATFORM_DESCRIPTIONS = {
     ),
 }
 
-VIOLATES_RELATIONSHIP_DESCRIPTION = {
-   SecurityObjectiveType.CONFIDENTIALITY: (
-        "Copy model without consent",
-        "Steal model functionality",
-        "Extract model parameters",
-        "Extract model architecture",
-        "Infer sample membership",
-        "Infer training data attributes",
-        "Reconstruct training samples",
-        "Recover sensitive training data",
-        "Obtain proprietary model information",
-        "Leak confidential information",
-    ),
-
-    SecurityObjectiveType.INTEGRITY: (
-        "Misclassify perturbed samples",
-        "Misclassify samples with trigger",
-        "Cause targeted misclassification",
-        "Cause untargeted misclassification",
-        "Manipulate model outputs",
-        "Manipulate model behavior",
-        "Poison training data",
-        "Poison training labels",
-        "Backdoor the model",
-        "Influence model decisions",
-        "Bypass safety controls",
-        "Evade detection",
-        "Subvert intended model behavior",
-    ),
-
-    SecurityObjectiveType.AVAILABILITY: (
-        "Decrease model performance",
-        "Decrease model accuracy",
-        "Increase inference latency",
-        "Increase computational cost",
-        "Increase resource consumption",
-        "Prevent model training",
-        "Prevent model inference",
-        "Cause denial of service",
-        "Disrupt model operation",
-        "Reduce model utility",
-        "Cause system outage",
-    ),
-}
 
 SECURITY_OBJECTIVE_DESCRIPTION = {
     SecurityObjectiveType.CONFIDENTIALITY:

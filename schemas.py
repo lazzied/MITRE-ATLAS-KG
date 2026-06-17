@@ -38,7 +38,7 @@ class AttackPhaseID (Enum):
     INFERENCE = "inference"
     TRAINING = "training"
 
-class LifeCyclePhaseID():
+class LifeCyclePhaseID(Enum):
     DATA_UNDERSTANDING = "data_understanding"
     DATA_PREPARATION = "data_preparation"
     MODEL_ENGINEERING = "ai_model_engineering"
@@ -101,6 +101,8 @@ class MitigationCategoryType(Enum):
     HARDENING  = "hardening"    # this is during an attack ; reduces attack effectiveness during an attack even if it were to happen
     DETECTIVE  = "detective"    # this is monitoring; identifies attacks or integrity violations
 
+class EntityType(Enum):
+    pass
 
 class RelationshipType(Enum):
     # define the relationship types between the entities (edges in the graph) an extended version of the ATLAS RELATIONSHIP TYPE
@@ -113,14 +115,18 @@ class RelationshipType(Enum):
     APPLIES_TO_PLATFORM = "applies_to_platform" # a tachnique applies to an platform # my project is using generative AI,what techniques should i be aware of? 
     HAS_ACCESS_TO = "has_access_to" # a technique to be performed requires access to an model component
     ALTERS = "alters" # An attacker uses technique to alter a model component
-    HAS_SIMILAR_TECHNIQUES_TO = "similar_techniques_to" # a case study is similar to another case study in terms of techniques used
     OCCURS_AT = "occurs_at" # an attack occurs at a certain phase
     VIOLATES = "violates" # a technique violates a certain security objective (confidentiality, integrity, availability)
-    IS_SIMILAR_TO = "is_similar_to"
+    IS_SIMILAR_TO = "is_similar_to" # a technique is similar to technique
     
 ObjectId = (
     TacticId | TechniqueId | MitigationId | CaseStudyId | PlatformID | LifecyclePhaseID | ModelComponentID | SecurityObjectiveID | AttackPhaseID
 )
+
+class EntityBooleanType(Enum):
+    SOURCE = "source"
+    TARGET= "target"
+
 
 @dataclass
 class Relationship(): # this is a simplified relationship class from

@@ -1,83 +1,107 @@
 MITIGATION_PROMPT = """
-You are an automated Cybersecurity Knowledge Graph enrichment engine specializing in Adversarial Machine Learning.
-Your task is to analyze an established "MITIGATES" relationship between a Mitigation entity and a Technique entity.
+Role: You are an automated Cybersecurity Knowledge Graph enrichment engine specializing in Adversarial Machine Learning.
+Task: Your task is to analyze an established "MITIGATES" relationship between a Mitigation entity and a Technique entity.
 
-Below is the network context from the Graph Database. It contains the attributes of both nodes, 
-the defensive context of the mitigation, and the behavioral footprint (execution path) of the attack technique.
+TARGET RELATIONSHIP EVALUATION: MITIGATION -[MITIGATES]-> TECHNIQUE
 
-Context from Graph Base:
-{graph_context}
-
-Classification Rules:
+=== TARGET CATEGORY OPTIONS ===
 - PREVENTIVE: Defensive preparations that reduce the attack surface or eliminate requirements before an attack occurs.
 - HARDENING: Mechanisms that minimize an attack's effectiveness or blast radius during execution, even if the technique successfully triggers.
 - DETECTIVE: Monitoring, auditing, and logging infrastructures that identify active execution footprints or subsequent integrity violations.
 
-Strict Evaluation Criteria:
-1. Default to assigning a single, primary category. 
+=== FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
+
+Example 1: Sanitize Training Data -[MITIGATES]-> Poisoning, label flip
+- PREVENTIVE: (Filtering and validating training_samples/training_labels before ingestion removes the poisoned data the technique depends on, eliminating the requirement before training begins)
+
+Example 2: Adversarial Input Detection -[MITIGATES]-> Evasion, white-box
+- DETECTIVE: (Statistical or model-based detectors flag perturbed test_samples at inference time, identifying the active execution footprint of the technique)
+
+Example 3: Rate Limiting / Query Throttling -[MITIGATES]-> Model Stealing
+- HARDENING: (Capping the volume of queries against the output endpoint limits how much functional information an adversary can extract per unit time, reducing blast radius without preventing querying altogether)
+- DETECTIVE: (Anomalous query volume patterns can also be logged and flagged, identifying the active extraction attempt as it occurs)
+
+Example 4: Encrypted Model Storage -[MITIGATES]-> Model Stealing
+- PREVENTIVE: (Encrypting weights at rest removes the adversary's ability to directly access model parameters, eliminating a precondition for white-box extraction)
+
+=== STRICT EVALUATION CRITERIA ===
+1. Default to assigning a single, primary category.
 2. You are allowed to assign multiple categories ONLY if there is strong, undeniable structural evidence in the context that the mitigation explicitly performs multiple distinct defensive roles against this technique.
 3. Pay close attention to what components the Technique "ALTERS" or "HAS_ACCESS_TO" and its lifecycle phase ("OCCURS_AT") to determine exactly where the Mitigation intercepts the attack path.
 4. For every category you select, write a brief, tactical description explaining exactly how the mitigation functions under that specific category.
 
-Analyze the attributes of "{mitigation_id}" and how it intercepts the execution path of "{technique_id}". 
+=== GRAPH DATA CONTEXT ===
+Below is the network context from the Graph Database. It contains the attributes of both nodes,
+the defensive context of the mitigation, and the behavioral footprint (execution path) of the attack
+technique, including its ALTERS, HAS_ACCESS_TO, and OCCURS_AT edges.
+
+{graph_context}
+
+=== LIVE EXTRACTION PROCESS ===
+Analyze the attributes of "{mitigation_id}" and how it intercepts the execution path of "{technique_id}".
 Deduce the correct categories and provide descriptions for each.
 """
 
 
 HAS_ACCESS_TO_PROMPT = """
-Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix. Your job is to extract access dependencies between an offensive Technique and fundamental Machine Learning Model Components.
+Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix.
+Task: Your job is to extract access dependencies between an offensive Technique and fundamental Machine Learning Model Components.
 
-    === TARGET MODEL COMPONENT OPTIONS ===
-    - training_samples
-    - training_labels
-    - test_samples
-    - test_labels
-    - weights
-    - output
+TARGET RELATIONSHIP EVALUATION: TECHNIQUE -[HAS_ACCESS_TO]-> MODEL COMPONENT
 
-    === RELATIONSHIP STRUCTURING CRITERIA ===
-    - REQUIRED (required = true): The attack technique physically CANNOT execute or achieve its primary goal without this component.
-    - OPTIONAL (required = false): The technique can function without it, but access to it optimizes the attack, represents an alternative variant, or is conditionally required.
-    - NO RELATIONSHIP: Do not include the component in the output list if the technique does not interact with it.
+=== TARGET MODEL COMPONENT OPTIONS ===
+- training_samples
+- training_labels
+- test_samples
+- test_labels
+- weights
+- output
 
-    === FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
+=== RELATIONSHIP STRUCTURING CRITERIA ===
+THE "REQUIRED" ATTRIBUTE OF THE RELATIONSHIP FOLLOWS THIS CRITERIA:
+- REQUIRED (required = true): The attack technique physically CANNOT execute or achieve its primary goal without this component.
+- OPTIONAL (required = false): The technique can function without it, but access to it optimizes the attack, represents an alternative variant, or is conditionally required.
+- NO RELATIONSHIP: Do not include the component in the output list if the technique does not interact with it.
 
-    Example 1: Poisoning, bilevel (Data Poisoning Attack) -> [Valid One-to-Many Output]
-    - training_samples: REQUIRED (The adversary must inject or manipulate data entering the training pool)
-    - training_labels: REQUIRED (The attack relies on modifying or knowing corresponding training labels for optimization)
-    - weights: OPTIONAL (A cleaner optimization can be achieved if weights are known, but white-box access isn't strictly mandatory)
-    - test_samples / test_labels / output: NO RELATIONSHIP (The attack is executed entirely during the pre-deployment phase)
+=== FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
 
-    Example 2: Evasion, white-box (Adversarial Perturbation) -> [Valid One-to-Many Output]
-    - test_samples: REQUIRED (The adversary manipulates current input evaluation samples)
-    - test_labels: REQUIRED (Needed to calculate loss vector adjustments away from the true target label)
-    - weights: REQUIRED (White-box explicitly mandates direct access to model layers, parameters, and gradients)
-    - training_samples / training_labels: NO RELATIONSHIP
+Example 1: Poisoning, bilevel (Data Poisoning Attack) -> [Valid One-to-Many Output]
+- training_samples: REQUIRED (The adversary must inject or manipulate data entering the training pool)
+- training_labels: REQUIRED (The attack relies on modifying or knowing corresponding training labels for optimization)
+- weights: OPTIONAL (A cleaner optimization can be achieved if weights are known, but white-box access isn't strictly mandatory)
+- test_samples / test_labels / output: NO RELATIONSHIP (The attack is executed entirely during the pre-deployment phase)
 
-    Example 3: Model Stealing (Functional Replication) -> [Valid One-to-Many Output]
-    - output: REQUIRED (The adversary must query the model's inference API and observe returned labels or confidence scores)
-    - test_samples: OPTIONAL (The attacker can use a separate synthetic dataset to query the target black-box API)
-    - training_samples / training_labels / weights: NO RELATIONSHIP
+Example 2: Evasion, white-box (Adversarial Perturbation) -> [Valid One-to-Many Output]
+- test_samples: REQUIRED (The adversary manipulates current input evaluation samples)
+- test_labels: REQUIRED (Needed to calculate loss vector adjustments away from the true target label)
+- weights: REQUIRED (White-box explicitly mandates direct access to model layers, parameters, and gradients)
+- training_samples / training_labels: NO RELATIONSHIP
 
-    === STRICT ONE-TO-MANY VALIDATION RULES ===
-    1. A single Technique CAN have a One-to-Many mapping to multiple Model Components (as demonstrated in the examples).
-    2. Crucial Guardrail: You are allowed to map multiple components ONLY if there is direct, strong, and undeniable text-based evidence in the provided graph context showing the technique actively touches or targets those distinct artifacts.
-    3. If the evidence for a component is speculative, conditional on an edge-case configuration not mentioned in the context, or purely hypothetical, you MUST drop that component from the list completely. Prioritize high-confidence grounding over exhaustive mapping.
+Example 3: Model Stealing (Functional Replication) -> [Valid One-to-Many Output]
+- output: REQUIRED (The adversary must query the model's inference API and observe returned labels or confidence scores)
+- test_samples: OPTIONAL (The attacker can use a separate synthetic dataset to query the target black-box API)
+- training_samples / training_labels / weights: NO RELATIONSHIP
 
-    === CURRENT TASK TO EVALUATE ===
-    Using the extraction logic and grounding patterns demonstrated above, process the following live graph context:
-
-    {graph_context}
-
-    Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid access_requirements conforming to the strict validation rules.
-    
-"""
-
-OCCURS_AT_PROMPT= """
-Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix. Your job is to extract lifecycle dependencies mapping an offensive Technique to its specific Attack Phase.
+=== STRICT ONE-TO-MANY VALIDATION RULES ===
+1. A single Technique CAN have a One-to-Many mapping to multiple Model Components (as demonstrated in the examples).
+2. Crucial Guardrail: You are allowed to map multiple components ONLY if there is direct, strong, and undeniable text-based evidence in the provided graph context showing the technique actively touches or targets those distinct artifacts.
+3. If the evidence for a component is speculative, conditional on an edge-case configuration not mentioned in the context, or purely hypothetical, you MUST drop that component from the list completely. Prioritize high-confidence grounding over exhaustive mapping.
 
 === GRAPH DATA CONTEXT ===
+Below is the network context from the Graph Database. It contains the attributes of both nodes.
+
 {graph_context}
+
+=== LIVE EXTRACTION PROCESS ===
+Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid access_requirements conforming to the strict validation rules.
+"""
+
+
+OCCURS_AT_PROMPT = """
+Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix.
+Task: Your job is to extract lifecycle dependencies mapping an offensive Technique to its specific Attack Phase.
+
+TARGET RELATIONSHIP EVALUATION: TECHNIQUE -[OCCURS_AT]-> ATTACK_PHASE
 
 === TARGET ATTACK PHASE OPTIONS ===
 - training: Pre-deployment pipeline operations. Includes dataset curation, labeling configurations, training execution, optimization cycles, and model supply-chain storage.
@@ -96,120 +120,172 @@ Analyze the technical description of the technique and any associated operationa
 - Evasion (White-box/Black-box) -> phase_id: inference (Perturbs inputs against an active, deployed inference pipeline)
 - Model Stealing -> phase_id: inference (Queries the deployment API to extract outputs and map internal parameters)
 
+=== GRAPH DATA CONTEXT ===
+Below is the network context from the Graph Database. It contains the attributes of both nodes.
+
+{graph_context}
+
+=== LIVE EXTRACTION PROCESS ===
 Determine all valid OCCURS_AT relationships for "{technique_id}".
 """
-ALTERS_PROMPT= """
-    Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix. Your job is to extract alteration dependencies between an offensive Technique and fundamental Machine Learning Model Components.
 
-    === TARGET MODEL COMPONENT OPTIONS ===
-    - training_samples
-    - training_labels
-    - test_samples
-    - test_labels
-    - weights
-    - output
 
-    === RELATIONSHIP STRUCTURING CRITERIA ===
-    Evaluate the relationship between the Technique ({technique_id}) and each target component based on these strict guidelines:
-    - REQUIRED (required = true): The technique definitely requires, manipulates, or forces a modification of this component to execute its core vector.
-    - SOMETIMES REQUIRED (required = false): The technique conditionally alters this component, or alters it only in specific sub-variants of the attack.
-    - NOT REQUIRED (Omit from output list entirely): There is no interaction or modification path. Do not create an ALTERS relationship.
+ALTERS_PROMPT = """
+Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix.
+Task: Your job is to extract alteration dependencies between an offensive Technique and fundamental Machine Learning Model Components.
 
-    === FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
+TARGET RELATIONSHIP EVALUATION: TECHNIQUE -[ALTERS]-> MODEL COMPONENT
 
-    Example 1: Poisoning, bilevel
-    - training_samples: REQUIRED (Directly manipulates data going into the training pipeline pool)
-    - training_labels: SOMETIMES REQUIRED (Alters training labels conditionally depending on optimization target)
-    - test_samples / test_labels / weights / output: NOT REQUIRED (No active modification or alteration happens to these components)
+=== TARGET MODEL COMPONENT OPTIONS ===
+- training_samples
+- training_labels
+- test_samples
+- test_labels
+- weights
+- output
 
-    Example 2: Backdoor (Trojaning Attack)
-    - training_samples: REQUIRED (Must inject a trigger into the training data pool)
-    - training_labels: SOMETIMES REQUIRED (May alter or corrupt labels to map to the backdoor target class)
-    - test_samples: REQUIRED (Alters or appends the trigger matrix onto input evaluation/test instances at inference time)
-    - test_labels / weights / output: NOT REQUIRED
+=== RELATIONSHIP STRUCTURING CRITERIA ===
+THE "REQUIRED" ATTRIBUTE OF THE RELATIONSHIP FOLLOWS THIS CRITERIA (same scheme as HAS_ACCESS_TO, applied to active modification rather than mere access):
+- REQUIRED (required = true): The technique physically CANNOT achieve its primary goal without actively altering this component.
+- OPTIONAL (required = false): The technique alters this component only in some variants or configurations; alteration is conditional, not universal across the technique's execution.
+- NO RELATIONSHIP: Do not include the component in the output list if the technique does not alter it.
 
-    Example 3: Evasion, black-box
-    - test_samples: REQUIRED (The adversary actively perturbs test or evaluation samples to dodge classification boundary limits)
-    - output: SOMETIMES REQUIRED (Adversary might actively manipulate or intercept inference responses in some advanced pipeline variants)
-    - training_samples / training_labels / weights / test_labels: NOT REQUIRED
+=== FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
 
-    Example 4: Attribute Inference
-    - All components: NOT REQUIRED (This attack is purely passive reconstruction/exfiltration; no pipeline elements are altered. Output is empty list)
+Example 1: Poisoning, bilevel
+- training_samples: REQUIRED (Directly manipulates data going into the training pipeline pool)
+- training_labels: OPTIONAL (Alters training labels conditionally, depending on the optimization target)
+- test_samples / test_labels / weights / output: NO RELATIONSHIP (No active modification happens to these components)
 
-    === STRICT ONE-TO-MANY VALIDATION RULES ===
-    1. A single Technique CAN have a One-to-Many mapping to multiple Model Components (as demonstrated in the examples).
-    2. Crucial Guardrail: You are allowed to map multiple components ONLY if there is direct, strong, and undeniable text-based evidence in the provided graph context showing the technique actively alters or modifies those distinct artifacts.
-    3. If the evidence for an alteration path is speculative or purely hypothetical, you MUST drop that component from the list completely.
+Example 2: Backdoor (Trojaning Attack)
+- training_samples: REQUIRED (Must inject a trigger pattern into the training data pool)
+- training_labels: OPTIONAL (May alter or corrupt labels to map to the backdoor target class, depending on the variant)
+- test_samples: REQUIRED (Alters or appends the trigger pattern onto input evaluation/test instances at inference time)
+- test_labels / weights / output: NO RELATIONSHIP
 
-    === CURRENT TASK TO EVALUATE ===
-    Using the extraction logic and grounding patterns demonstrated above, process the following live graph context:
+Example 3: Evasion, black-box
+- test_samples: REQUIRED (The adversary actively perturbs test or evaluation samples to dodge classification boundary limits)
+- output: OPTIONAL (Adversary might actively manipulate or intercept inference responses in some advanced pipeline variants)
+- training_samples / training_labels / weights / test_labels: NO RELATIONSHIP
 
-    {graph_context}
+Example 4: Attribute Inference
+- All components: NO RELATIONSHIP (This attack is purely passive reconstruction/exfiltration; no pipeline elements are altered. Output is an empty list)
 
-    Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid alters_requirements.
-    """
-    
+=== STRICT ONE-TO-MANY VALIDATION RULES ===
+1. A single Technique CAN have a One-to-Many mapping to multiple Model Components (as demonstrated in the examples).
+2. Crucial Guardrail: You are allowed to map multiple components ONLY if there is direct, strong, and undeniable text-based evidence in the provided graph context showing the technique actively alters or modifies those distinct artifacts.
+3. If the evidence for an alteration path is speculative or purely hypothetical, you MUST drop that component from the list completely.
+
+=== GRAPH DATA CONTEXT ===
+Below is the network context from the Graph Database. It contains the attributes of both nodes.
+
+{graph_context}
+
+=== LIVE EXTRACTION PROCESS ===
+Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid alters_requirements conforming to the strict validation rules.
+"""
+
+
 VIOLATES_PROMPT = """
-    Role: You are an expert Adversarial Machine Learning (AML) triage analyst building a knowledge graph based on the MITRE ATLAS framework. Your task is to analyze an offensive Technique and map out its impact on core Security Objectives.
+Role: You are an expert Adversarial Machine Learning (AML) triage analyst building a knowledge graph based on the MITRE ATLAS framework.
+Task: Your task is to analyze an offensive Technique and map out its impact on core Security Objectives.
 
-    === GRAPH DATA CONTEXT ===
-    {graph_context}
+TARGET RELATIONSHIP EVALUATION: TECHNIQUE -[VIOLATES]-> SECURITY_OBJECTIVE
 
-    === LEGAL PREDEFINED STRINGS FOR THE 'descriptions' LIST ===
-    You MUST extract descriptions verbatim from these sets. Do not reword, combine, or invent string tokens.
+=== LEGAL PREDEFINED STRINGS FOR THE 'descriptions' LIST ===
+You MUST extract descriptions verbatim from these sets. Do not reword, combine, or invent string tokens.
 
-    CONFIDENTIALITY Options:
-    {confidentiality_options}
+CONFIDENTIALITY Options:
+    "Copy model without consent",
+    "Steal model functionality",
+    "Extract model parameters",
+    "Extract model architecture",
+    "Infer sample membership",
+    "Infer training data attributes",
+    "Reconstruct training samples",
+    "Recover sensitive training data",
+    "Obtain proprietary model information",
+    "Leak confidential information",
 
-    INTEGRITY Options:
-    {integrity_options}
+INTEGRITY Options:
+    "Misclassify perturbed samples",
+    "Misclassify samples with trigger",
+    "Cause targeted misclassification",
+    "Cause untargeted misclassification",
+    "Manipulate model outputs",
+    "Manipulate model behavior",
+    "Poison training data",
+    "Poison training labels",
+    "Backdoor the model",
+    "Influence model decisions",
+    "Bypass safety controls",
+    "Evade detection",
+    "Subvert intended model behavior",
 
-    AVAILABILITY Options:
-    {availability_options}
+AVAILABILITY Options:
+    "Decrease model performance",
+    "Decrease model accuracy",
+    "Increase inference latency",
+    "Increase computational cost",
+    "Increase resource consumption",
+    "Prevent model training",
+    "Prevent model inference",
+    "Cause denial of service",
+    "Disrupt model operation",
+    "Reduce model utility",
+    "Cause system outage",
 
-    === MULTI-LABEL STRUCTURING RULES ===
-    1. A single edge to a Security Objective CAN contain multiple description strings simultaneously (as a List), but ONLY if there is clear, undeniable text-grounded evidence in the context.
-    2. Default to assigning the most accurate primary descriptions. Do not add supplementary descriptions if they are speculative or merely generic downstream outcomes.
+=== MULTI-LABEL STRUCTURING RULES ===
+1. A single edge to a Security Objective CAN contain multiple description strings simultaneously (as a List), but ONLY if there is clear, undeniable text-grounded evidence in the context.
+2. Default to assigning the most accurate primary descriptions. Do not add supplementary descriptions if they are speculative or merely generic downstream outcomes.
+3. Cross-reference the technique's ALTERS, HAS_ACCESS_TO, and OCCURS_AT edges where available in the context: what a technique alters or accesses is strong supporting evidence for which Security Objective it violates (e.g., altering weights or output points toward integrity/availability concerns, while accessing output without altering anything points toward confidentiality).
 
-    === SYSTEM FEW-SHOT ALIGNMENT REFERENCE===
-    Use these standard baselines to guide your classification thresholds:
+=== SYSTEM FEW-SHOT ALIGNMENT REFERENCE ===
+Use these standard baselines to guide your classification thresholds:
 
-    - Poisoning, bilevel 
-      * Objective: availability -> ["Decrease model performance"]
-      * Confidentiality: NO RELATIONSHIP | Integrity: NO RELATIONSHIP
+- Poisoning, bilevel
+  * Objective: availability -> ["Decrease model performance"]
+  * Confidentiality: NO RELATIONSHIP | Integrity: NO RELATIONSHIP
 
-    - Poisoning, label flip 
-      * Objective: availability -> ["Decrease model performance"]
-      * Confidentiality: NO RELATIONSHIP | Integrity: NO RELATIONSHIP
+- Poisoning, label flip
+  * Objective: availability -> ["Decrease model performance"]
+  * Confidentiality: NO RELATIONSHIP | Integrity: NO RELATIONSHIP
 
-    - Backdoor 
-      * Objective: integrity -> ["Misclassify samples with trigger"]
-      * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+- Backdoor
+  * Objective: integrity -> ["Misclassify samples with trigger"]
+  * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
-    - Evasion, white-box 
-      * Objective: integrity -> ["Misclassify perturbed samples"]
-      * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+- Evasion, white-box
+  * Objective: integrity -> ["Misclassify perturbed samples"]
+  * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
-    - Evasion, black-box 
-      * Objective: integrity -> ["Misclassify perturbed samples"]
-      * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+- Evasion, black-box
+  * Objective: integrity -> ["Misclassify perturbed samples"]
+  * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
-    - Model Stealing 
-      * Objective: confidentiality -> ["Copy model without consent"]
-      * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+- Model Stealing
+  * Objective: confidentiality -> ["Copy model without consent"]
+  * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
-    - Membership Inference (Mem. Inf.)
-      * Objective: confidentiality -> ["Infer sample membership"]
-      * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+- Membership Inference (Mem. Inf.)
+  * Objective: confidentiality -> ["Infer sample membership"]
+  * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
-    - Attribute Inference (Attribute Inf.)
-      * Objective: confidentiality -> ["Infer training data attributes"]
-      * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+- Attribute Inference (Attribute Inf.)
+  * Objective: confidentiality -> ["Infer training data attributes"]
+  * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
-    === LIVE EXTRACTION PROCESS ===
-    Analyze the attributes of "{technique_id}" along with its connected tactics and case studies. Identify all applicable security objectives, populate their allowed descriptions lists, and output the structured tracking payloads.
-    """
-    
+=== GRAPH DATA CONTEXT ===
+Below is the network context from the Graph Database. It contains the technique's attributes, connected
+tactics, case studies, and any available ALTERS / HAS_ACCESS_TO / OCCURS_AT edges.
+
+{graph_context}
+
+=== LIVE EXTRACTION PROCESS ===
+Analyze the attributes of "{technique_id}" along with its connected tactics, case studies, and neighborhood
+edges. Identify all applicable security objectives, populate their allowed descriptions lists, and output
+the structured tracking payloads.
+"""
     
 TECHNIQUE_SIMILARITY_PROMPT = """
 You are an expert cybersecurity architect specializing in adversarial machine learning and the MITRE ATLAS framework.
