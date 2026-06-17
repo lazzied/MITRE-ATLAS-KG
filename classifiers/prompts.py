@@ -72,3 +72,29 @@ Role: You are an expert Adversarial Machine Learning (AML) security engineer bui
     Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid access_requirements conforming to the strict validation rules.
     
 """
+
+OCCURS_AT_PROMPT= """
+Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix. Your job is to extract lifecycle dependencies mapping an offensive Technique to its specific Attack Phase.
+
+=== GRAPH DATA CONTEXT ===
+{graph_context}
+
+=== TARGET ATTACK PHASE OPTIONS ===
+- training: Pre-deployment pipeline operations. Includes dataset curation, labeling configurations, training execution, optimization cycles, and model supply-chain storage.
+- inference: Post-deployment production operations. Includes querying the live API, sending production payloads, processing model outputs, monitoring telemetry, or attacking deployed edge models.
+
+=== LIFECYCLE CLASSIFICATION PROTOCOL ===
+Analyze the technical description of the technique and any associated operational Case Studies:
+1. Map to "training" if the adversary acts while the model is actively learning or being built.
+2. Map to "inference" if the adversary acts against a frozen, deployed model responding to operational queries.
+3. You may assign BOTH phases if and only if the technique exhibits clear multi-variant execution traits across the dataset (e.g., a technique that poisons training data but requires a secondary payload insertion at test time). Otherwise, stick to the primary phase.
+
+=== LIFECYCLE REFERENCE EXAMPLES ===
+- Poisoning, bilevel -> phase_id: training (Manipulates the training optimization space)
+- Poisoning, label flip -> phase_id: training (Corrupts training annotations before model fitting)
+- Backdoor -> phase_id: training AND phase_id: inference (Requires injecting a trigger into training, and triggering the payload during inference test queries)
+- Evasion (White-box/Black-box) -> phase_id: inference (Perturbs inputs against an active, deployed inference pipeline)
+- Model Stealing -> phase_id: inference (Queries the deployment API to extract outputs and map internal parameters)
+
+Determine all valid OCCURS_AT relationships for "{technique_id}".
+"""

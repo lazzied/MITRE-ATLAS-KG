@@ -1,14 +1,11 @@
 import time
 from typing import Dict, List
 from pydantic import BaseModel, Field
-
 from llama_index.core.program import LLMTextCompletionProgram
-
 from scripts.classifiers.context_queries import MITIGATION_CONTEXT_QUERY
 from scripts.classifiers.initialization import get_connections
 from scripts.classifiers.interface import BaseRelationshipClassifier
 from scripts.classifiers.prompts import MITIGATION_PROMPT
-
 from scripts.schemas import MitigationCategoryType, Relationship, RelationshipType 
 
 class RelationshipClassification(BaseModel):

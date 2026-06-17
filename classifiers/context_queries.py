@@ -24,4 +24,15 @@ RETURN t, collect({
 }) as neighborhood_map
 """
 
+OCCURS_AT_CONTEXT_QUERY = """
+MATCH (t:Technique {id: $technique_id})
+// Bidirectional match configuration ensures complete operational background pulling
+OPTIONAL MATCH (t)-[r]-(neighbors)
+RETURN t, collect({
+    rel_type: type(r), 
+    neighbor_labels: labels(neighbors), 
+    neighbor_props: properties(neighbors)
+}) as neighborhood_map
+"""
+
 
