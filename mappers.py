@@ -61,7 +61,7 @@ PLATFORM_DESCRIPTIONS = {
     ),
 }
 
-EXPLOIT_RELATIONSHIP_DESCRIPTION = {
+VIOLATES_RELATIONSHIP_DESCRIPTION = {
    SecurityObjectiveType.CONFIDENTIALITY: (
         "Copy model without consent",
         "Steal model functionality",

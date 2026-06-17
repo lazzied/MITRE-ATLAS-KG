@@ -43,4 +43,14 @@ ALTERS_QUERY="""
         neighbor_props: properties(neighbors)
     }) as neighborhood_map
     """
+    
+VIOLATES_QUERY = """
+    MATCH (t {id: $technique_id})
+    OPTIONAL MATCH (t)-[r]->(neighbors)
+    RETURN t, collect({
+        rel_type: type(r), 
+        neighbor_labels: labels(neighbors), 
+        neighbor_props: properties(neighbors)
+    }) as neighborhood_map
+    """
 

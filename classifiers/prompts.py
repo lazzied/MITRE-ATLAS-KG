@@ -148,3 +148,64 @@ ALTERS_PROMPT= """
 
     Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid alters_requirements.
     """
+    
+VIOLATES_PROMPT = """
+    Role: You are an expert Adversarial Machine Learning (AML) triage analyst building a knowledge graph based on the MITRE ATLAS framework. Your task is to analyze an offensive Technique and map out its impact on core Security Objectives.
+
+    === GRAPH DATA CONTEXT ===
+    {graph_context}
+
+    === LEGAL PREDEFINED STRINGS FOR THE 'descriptions' LIST ===
+    You MUST extract descriptions verbatim from these sets. Do not reword, combine, or invent string tokens.
+
+    CONFIDENTIALITY Options:
+    {confidentiality_options}
+
+    INTEGRITY Options:
+    {integrity_options}
+
+    AVAILABILITY Options:
+    {availability_options}
+
+    === MULTI-LABEL STRUCTURING RULES ===
+    1. A single edge to a Security Objective CAN contain multiple description strings simultaneously (as a List), but ONLY if there is clear, undeniable text-grounded evidence in the context.
+    2. Default to assigning the most accurate primary descriptions. Do not add supplementary descriptions if they are speculative or merely generic downstream outcomes.
+
+    === SYSTEM FEW-SHOT ALIGNMENT REFERENCE===
+    Use these standard baselines to guide your classification thresholds:
+
+    - Poisoning, bilevel 
+      * Objective: availability -> ["Decrease model performance"]
+      * Confidentiality: NO RELATIONSHIP | Integrity: NO RELATIONSHIP
+
+    - Poisoning, label flip 
+      * Objective: availability -> ["Decrease model performance"]
+      * Confidentiality: NO RELATIONSHIP | Integrity: NO RELATIONSHIP
+
+    - Backdoor 
+      * Objective: integrity -> ["Misclassify samples with trigger"]
+      * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+
+    - Evasion, white-box 
+      * Objective: integrity -> ["Misclassify perturbed samples"]
+      * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+
+    - Evasion, black-box 
+      * Objective: integrity -> ["Misclassify perturbed samples"]
+      * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+
+    - Model Stealing 
+      * Objective: confidentiality -> ["Copy model without consent"]
+      * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+
+    - Membership Inference (Mem. Inf.)
+      * Objective: confidentiality -> ["Infer sample membership"]
+      * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+
+    - Attribute Inference (Attribute Inf.)
+      * Objective: confidentiality -> ["Infer training data attributes"]
+      * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
+
+    === LIVE EXTRACTION PROCESS ===
+    Analyze the attributes of "{technique_id}" along with its connected tactics and case studies. Identify all applicable security objectives, populate their allowed descriptions lists, and output the structured tracking payloads.
+    """
