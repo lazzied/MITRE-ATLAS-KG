@@ -209,3 +209,46 @@ VIOLATES_PROMPT = """
     === LIVE EXTRACTION PROCESS ===
     Analyze the attributes of "{technique_id}" along with its connected tactics and case studies. Identify all applicable security objectives, populate their allowed descriptions lists, and output the structured tracking payloads.
     """
+    
+    
+TECHNIQUE_SIMILARITY_PROMPT = """
+You are an expert cybersecurity architect specializing in adversarial machine learning and the MITRE ATLAS framework.
+Your task is to analyze two distinct attack techniques and provide a concise, text-grounded justification explaining why they are structurally and behaviorally similar.
+
+You are given the exact mathematical similarity coefficient and the structural relationship footprints retrieved from our system graph database.
+
+TARGET TECHNIQUE 1:
+- ID: {technique_id_1}
+- Structural Vectors: {profile_1}
+
+COMPARED TECHNIQUE 2:
+- ID: {technique_id_2}
+- Structural Vectors: {profile_2}
+
+EVALUATION METRICS:
+- Final Calculated Similarity Coefficient: {final_score} (On a scale of 0.0 to 1.0, where 1.0 is identical)
+
+CRITICAL INSTRUCTIONS:
+1. Review the shared assets between both techniques: look for overlapping tactics, lifecycle phases (Training vs Inference), infrastructure access requirements, and targeted model components (e.g., datasets, hyperparameters, architecture).
+2. Write a single, cohesive, high-quality explanation summarizing why these techniques are clustered together.
+3. Focus purely on technical, behavioral, and structural commonalities. 
+4. Do not include or repeat any JSON markup, markdown syntax headers, or wrapper text outside of your direct statement.
+
+Your output must strictly fulfill the following Pydantic schema contract:
+{{"justification": "Your clear, text-grounded cybersecurity reasoning here."}}
+"""
+
+CASE_STUDY_SIMILARITY_PROMPT = """ You are an elite cyber threat intelligence analyst tracking adversarial machine learning campaigns.
+        Our graph similarity matrices have calculated a definitive behavioral overlap score of {final_score} between two case studies.
+
+        CASE STUDY 1: {name_1} ({id_1})
+        CASE STUDY 2: {name_2} ({id_2})
+
+        STRUCTURAL MATRIX ANALYSIS:
+        - Exact Overlapping Techniques: {exact_techniques}
+        - Soft-Matched Closest Techniques: {soft_matches}
+
+        Your task is to write a single, professional paragraph explaining why these two campaigns are clustered together.
+        Focus on the shared adversarial vectors, targeted pipeline components, or operational intentions demonstrated. 
+        Do not mention, question, or change the mathematical score provided. Output your evaluation purely inside the schema contract.
+"""

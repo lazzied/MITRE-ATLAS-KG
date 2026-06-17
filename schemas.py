@@ -116,7 +116,7 @@ class RelationshipType(Enum):
     HAS_SIMILAR_TECHNIQUES_TO = "similar_techniques_to" # a case study is similar to another case study in terms of techniques used
     OCCURS_AT = "occurs_at" # an attack occurs at a certain phase
     VIOLATES = "violates" # a technique violates a certain security objective (confidentiality, integrity, availability)
-    
+    IS_SIMILAR_TO = "is_similar_to"
     
 ObjectId = (
     TacticId | TechniqueId | MitigationId | CaseStudyId | PlatformID | LifecyclePhaseID | ModelComponentID | SecurityObjectiveID | AttackPhaseID
@@ -130,3 +130,4 @@ class Relationship(): # this is a simplified relationship class from
     description: str | None = Field(None, pattern=ASCII_TEXT)
     mitigation_type : list[MitigationCategoryType] | None = None
     required: bool | None = None
+    similar_to_coef: float | None = None
