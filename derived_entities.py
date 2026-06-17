@@ -1,18 +1,8 @@
 # this code takes the classes of atlas and from them generate independent classes from them using their properties without the use of llm; properties to entities
 
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent.parent
-ATLAS_PATH = ROOT / "atlas-data"
-
-print("ADDING PATH:", ATLAS_PATH)  # debug line
-
-sys.path.insert(0, str(ATLAS_PATH))
-
 from atlas.schemas import Mitigation, Technique
-from mappers import AI_SYSTEM_DESCRIPTIONS, LIFECYCLE_PHASE_ID_MAP, MITIGATION_LIFECYCLE_PHASE_DESCRIPTIONS
-from schemas import  LifeCyclePhase, LifecyclePhaseID, Platform, PlatformID, Relationship, RelationshipType
+from scripts.mappers import MITIGATION_LIFECYCLE_PHASE_DESCRIPTIONS, PLATFORM_DESCRIPTIONS
+from scripts.schemas import  LifeCyclePhase, LifecyclePhaseID, Platform, PlatformID, Relationship, RelationshipType
 
 
 
@@ -22,7 +12,7 @@ def generate_life_cycle_phase_dataclasses() -> list[LifeCyclePhase]:
     for phase_type, description in MITIGATION_LIFECYCLE_PHASE_DESCRIPTIONS.items():
         phases.append(
             LifeCyclePhase(
-                id=LIFECYCLE_PHASE_ID_MAP[phase_type],
+                id=LifecyclePhaseID[phase_type.name],
                 type=phase_type,
                 description=description,
             )
@@ -39,12 +29,29 @@ def generate_platform_dataclasses() -> list[Platform]:
             description=description,
         )
         for platform_type, description
-        in AI_SYSTEM_DESCRIPTIONS.items()
+        in PLATFORM_DESCRIPTIONS.items()
     ]
 
+def transform_lifecycle_phase(
+    phase: LifeCyclePhase,
+) -> dict:
+    return {
+        "id": phase.id.value,
+        "type": phase.type.value,
+        "description": phase.description,
+    }
 
 
-def generate_platform_relationship(
+def transform_platform(
+    platform: Platform,
+) -> dict:
+    return {
+        "id": platform.id.value,
+        "type": platform.type.value,
+        "description": platform.description,
+    }
+
+def generate_applies_to_platform_relationship(
     technique: Technique,
 ) -> list[Relationship]:
     relationships = []
@@ -66,7 +73,7 @@ def generate_platform_relationship(
     return relationships
 
 
-def generate_life_cycle_phase_relationship(
+def generate_applies_in_phase_relationship(
     mitigation: Mitigation,
 ) -> list[Relationship]:
     relationships = []
@@ -88,24 +95,7 @@ def generate_life_cycle_phase_relationship(
 
     return relationships
 
-def transform_lifecycle_phase(
-    phase: LifeCyclePhase,
-) -> dict:
-    return {
-        "id": phase.id.value,
-        "type": phase.type.value,
-        "description": phase.description,
-    }
 
-
-def transform_platform(
-    platform: Platform,
-) -> dict:
-    return {
-        "id": platform.id.value,
-        "type": platform.type.value,
-        "description": platform.description,
-    }
 
 if __name__ == "__main__":
     life_cycle_phases = generate_life_cycle_phase_dataclasses()

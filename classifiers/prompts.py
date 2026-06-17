@@ -1,4 +1,4 @@
-CLASSIFY_MITIGATION_PROMPT = """
+MITIGATION_PROMPT = """
 You are an automated Cybersecurity Knowledge Graph enrichment engine specializing in Adversarial Machine Learning.
 Your task is to analyze an established "MITIGATES" relationship between a Mitigation entity and a Technique entity.
 
@@ -21,4 +21,54 @@ Strict Evaluation Criteria:
 
 Analyze the attributes of "{mitigation_id}" and how it intercepts the execution path of "{technique_id}". 
 Deduce the correct categories and provide descriptions for each.
+"""
+
+
+HAS_ACCESS_TO_PROMPT = """
+Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix. Your job is to extract access dependencies between an offensive Technique and fundamental Machine Learning Model Components.
+
+    === TARGET MODEL COMPONENT OPTIONS ===
+    - training_samples
+    - training_labels
+    - test_samples
+    - test_labels
+    - weights
+    - output
+
+    === RELATIONSHIP STRUCTURING CRITERIA ===
+    - REQUIRED (required = true): The attack technique physically CANNOT execute or achieve its primary goal without this component.
+    - OPTIONAL (required = false): The technique can function without it, but access to it optimizes the attack, represents an alternative variant, or is conditionally required.
+    - NO RELATIONSHIP: Do not include the component in the output list if the technique does not interact with it.
+
+    === FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
+
+    Example 1: Poisoning, bilevel (Data Poisoning Attack) -> [Valid One-to-Many Output]
+    - training_samples: REQUIRED (The adversary must inject or manipulate data entering the training pool)
+    - training_labels: REQUIRED (The attack relies on modifying or knowing corresponding training labels for optimization)
+    - weights: OPTIONAL (A cleaner optimization can be achieved if weights are known, but white-box access isn't strictly mandatory)
+    - test_samples / test_labels / output: NO RELATIONSHIP (The attack is executed entirely during the pre-deployment phase)
+
+    Example 2: Evasion, white-box (Adversarial Perturbation) -> [Valid One-to-Many Output]
+    - test_samples: REQUIRED (The adversary manipulates current input evaluation samples)
+    - test_labels: REQUIRED (Needed to calculate loss vector adjustments away from the true target label)
+    - weights: REQUIRED (White-box explicitly mandates direct access to model layers, parameters, and gradients)
+    - training_samples / training_labels: NO RELATIONSHIP
+
+    Example 3: Model Stealing (Functional Replication) -> [Valid One-to-Many Output]
+    - output: REQUIRED (The adversary must query the model's inference API and observe returned labels or confidence scores)
+    - test_samples: OPTIONAL (The attacker can use a separate synthetic dataset to query the target black-box API)
+    - training_samples / training_labels / weights: NO RELATIONSHIP
+
+    === STRICT ONE-TO-MANY VALIDATION RULES ===
+    1. A single Technique CAN have a One-to-Many mapping to multiple Model Components (as demonstrated in the examples).
+    2. Crucial Guardrail: You are allowed to map multiple components ONLY if there is direct, strong, and undeniable text-based evidence in the provided graph context showing the technique actively touches or targets those distinct artifacts.
+    3. If the evidence for a component is speculative, conditional on an edge-case configuration not mentioned in the context, or purely hypothetical, you MUST drop that component from the list completely. Prioritize high-confidence grounding over exhaustive mapping.
+
+    === CURRENT TASK TO EVALUATE ===
+    Using the extraction logic and grounding patterns demonstrated above, process the following live graph context:
+
+    {graph_context}
+
+    Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid access_requirements conforming to the strict validation rules.
+    
 """

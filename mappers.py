@@ -1,5 +1,5 @@
 from atlas.enums import MitigationLifecyclePhasesType, TechniquePlatformType
-from schemas import LifecyclePhaseID, SecurityObjectiveType
+from scripts.schemas import AttackPhaseType, ModelComponentType, SecurityObjectiveType
 
  # these are mappers for descriptions and ID
 
@@ -117,22 +117,65 @@ SECURITY_OBJECTIVE_DESCRIPTION = {
         "Ensures AI systems remain operational and effective for legitimate users.",
 }
 
-LIFECYCLE_PHASE_ID_MAP = {
-    MitigationLifecyclePhasesType.DATA_UNDERSTANDING:
-        LifecyclePhaseID.DATA_UNDERSTANDING,
+ATTACK_PHASE_DESCRIPTION = {
+    AttackPhaseType.INFERENCE: (
+        "Activities performed after an AI model has been trained and is being queried, "
+        "served, evaluated, or otherwise used to produce outputs. In this phase, attacks "
+        "often target model behavior, inputs, prompts, runtime access paths, responses, "
+        "or exposed inference APIs."
+    ),
 
-    MitigationLifecyclePhasesType.DATA_PREPARATION:
-        LifecyclePhaseID.DATA_PREPARATION,
-
-    MitigationLifecyclePhasesType.MODEL_ENGINEERING:
-        LifecyclePhaseID.MODEL_ENGINEERING,
-
-    MitigationLifecyclePhasesType.MODEL_EVALUATION:
-        LifecyclePhaseID.MODEL_EVALUATION,
-
-    MitigationLifecyclePhasesType.DEPLOYMENT:
-        LifecyclePhaseID.DEPLOYMENT,
-
-    MitigationLifecyclePhasesType.MONITORING:
-        LifecyclePhaseID.MONITORING,
+    AttackPhaseType.TRAINING: (
+        "Activities performed while data, labels, features, architectures, parameters, "
+        "or learning procedures are being used to build or update an AI model. In this "
+        "phase, attacks often target the training pipeline, datasets, labeling process, "
+        "optimization procedure, or model state before deployment."
+    ),
 }
+
+MODEL_COMPONENT_DESCRIPTION = {
+    ModelComponentType.TRAINING_SAMPLES: (
+        "Input examples used during model training to teach patterns, features, behaviors, "
+        "or decision boundaries. Compromise of these samples can introduce poisoned data, "
+        "private information exposure, biased behavior, or persistent weaknesses in the "
+        "trained model."
+    ),
+
+    ModelComponentType.TRAINING_LABELS: (
+        "Ground-truth annotations, classes, ratings, or target values associated with "
+        "training samples. Compromise of these labels can corrupt supervised learning, "
+        "create targeted misclassification behavior, weaken detection quality, or shift "
+        "model decisions toward attacker-chosen outcomes."
+    ),
+
+    ModelComponentType.TEST_SAMPLES: (
+        "Input examples reserved for evaluating model performance, robustness, fairness, "
+        "or security after training. Compromise of these samples can hide weaknesses, "
+        "distort evaluation results, or make a model appear safer or more accurate than "
+        "it is under real operating conditions."
+    ),
+
+    ModelComponentType.TEST_LABELS: (
+        "Expected answers, classes, or target values used to score model behavior on test "
+        "samples. Compromise of these labels can manipulate evaluation metrics, conceal "
+        "model failures, or cause incorrect acceptance of unsafe model versions."
+    ),
+
+    ModelComponentType.WEIGHTS: (
+        "Learned model parameters that encode behavior after training or fine-tuning. "
+        "Compromise of weights can reveal proprietary model information, enable model "
+        "theft, introduce hidden behavior, degrade performance, or alter deployed model "
+        "outputs."
+    ),
+
+    ModelComponentType.OUTPUT: (
+        "Predictions, classifications, generated content, scores, decisions, or actions "
+        "produced by an AI system during evaluation or operation. Compromise of outputs "
+        "can mislead users, trigger unsafe downstream actions, leak sensitive information, "
+        "or violate confidentiality, integrity, or availability objectives."
+    ),
+}
+
+
+
+

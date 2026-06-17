@@ -1,12 +1,3 @@
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent.parent
-ATLAS_PATH = ROOT / "atlas-data"
-
-print("ADDING PATH:", ATLAS_PATH)  # debug line
-
-sys.path.insert(0, str(ATLAS_PATH))
 from atlas.schemas import AtlasRelationship, AtlasRelationshipType, Tactic, Mitigation, Technique, CaseStudy
 import yaml
 from atlas.schemas import AtlasExport

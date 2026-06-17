@@ -1,19 +1,15 @@
 import time
 from typing import Dict, List
 from pydantic import BaseModel, Field
-from pathlib import Path
-import sys
 
 from llama_index.core.program import LLMTextCompletionProgram
 
-from context_queries import CLASSIFY_MITIGATION_CONTEXT_QUERY
-from initialization import get_connections
-from interface import BaseRelationshipClassifier
-from prompts import CLASSIFY_MITIGATION_PROMPT
+from scripts.classifiers.context_queries import MITIGATION_CONTEXT_QUERY
+from scripts.classifiers.initialization import get_connections
+from scripts.classifiers.interface import BaseRelationshipClassifier
+from scripts.classifiers.prompts import MITIGATION_PROMPT
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
-from schemas import MitigationCategoryType, Relationship, RelationshipType 
+from scripts.schemas import MitigationCategoryType, Relationship, RelationshipType 
 
 class RelationshipClassification(BaseModel):
     categories: List[MitigationCategoryType] = Field(
@@ -29,8 +25,8 @@ class RelationshipClassification(BaseModel):
 class MitigationClassifier(BaseRelationshipClassifier):
     def __init__(self, graph_store, llm):
         super().__init__(graph_store, llm)
-        self.context_cypher_read = CLASSIFY_MITIGATION_CONTEXT_QUERY  
-        self.prompt_template = CLASSIFY_MITIGATION_PROMPT              
+        self.context_cypher_read = MITIGATION_CONTEXT_QUERY  
+        self.prompt_template = MITIGATION_PROMPT              
             
     def build_graph_context(self, mitigation_id: str, technique_id: str):
         records, _, _ = self.graph_store.client.execute_query(

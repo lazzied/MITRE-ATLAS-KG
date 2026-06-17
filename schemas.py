@@ -1,14 +1,4 @@
 # here we define the entities and relationships that we want to store in neo4j, and the properties of each entity and relationship 
-
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent.parent
-ATLAS_PATH = ROOT / "atlas-data"
-
-print("ADDING PATH:", ATLAS_PATH)  # debug line
-
-sys.path.insert(0, str(ATLAS_PATH))
 from dataclasses import dataclass
 from enum import Enum
 
@@ -48,6 +38,13 @@ class AttackPhaseID (Enum):
     INFERENCE = "inference"
     TRAINING = "training"
 
+class LifeCyclePhaseID():
+    DATA_UNDERSTANDING = "data_understanding"
+    DATA_PREPARATION = "data_preparation"
+    MODEL_ENGINEERING = "ai_model_engineering"
+    MODEL_EVALUATION = "ai_model_evaluation"
+    DEPLOYMENT = "deployment"
+    MONITORING = "monitoring_and_maintenance"
 
 @dataclass
 class Platform():
@@ -64,7 +61,7 @@ class LifeCyclePhase():
 
 class ModelComponentType(Enum):
     TRAINING_SAMPLES = "Training samples"
-    TRAINING_LABElS = "Training labels"
+    TRAINING_LABELS = "Training labels"
     TEST_SAMPLES = "Test samples"
     TEST_LABELS = "Test labels"
     WEIGHTS = "Weights"
