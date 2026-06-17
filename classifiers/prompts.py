@@ -98,3 +98,53 @@ Analyze the technical description of the technique and any associated operationa
 
 Determine all valid OCCURS_AT relationships for "{technique_id}".
 """
+ALTERS_PROMPT= """
+    Role: You are an expert Adversarial Machine Learning (AML) security engineer building a knowledge graph framework based on the MITRE ATLAS matrix. Your job is to extract alteration dependencies between an offensive Technique and fundamental Machine Learning Model Components.
+
+    === TARGET MODEL COMPONENT OPTIONS ===
+    - training_samples
+    - training_labels
+    - test_samples
+    - test_labels
+    - weights
+    - output
+
+    === RELATIONSHIP STRUCTURING CRITERIA ===
+    Evaluate the relationship between the Technique ({technique_id}) and each target component based on these strict guidelines:
+    - REQUIRED (required = true): The technique definitely requires, manipulates, or forces a modification of this component to execute its core vector.
+    - SOMETIMES REQUIRED (required = false): The technique conditionally alters this component, or alters it only in specific sub-variants of the attack.
+    - NOT REQUIRED (Omit from output list entirely): There is no interaction or modification path. Do not create an ALTERS relationship.
+
+    === FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
+
+    Example 1: Poisoning, bilevel
+    - training_samples: REQUIRED (Directly manipulates data going into the training pipeline pool)
+    - training_labels: SOMETIMES REQUIRED (Alters training labels conditionally depending on optimization target)
+    - test_samples / test_labels / weights / output: NOT REQUIRED (No active modification or alteration happens to these components)
+
+    Example 2: Backdoor (Trojaning Attack)
+    - training_samples: REQUIRED (Must inject a trigger into the training data pool)
+    - training_labels: SOMETIMES REQUIRED (May alter or corrupt labels to map to the backdoor target class)
+    - test_samples: REQUIRED (Alters or appends the trigger matrix onto input evaluation/test instances at inference time)
+    - test_labels / weights / output: NOT REQUIRED
+
+    Example 3: Evasion, black-box
+    - test_samples: REQUIRED (The adversary actively perturbs test or evaluation samples to dodge classification boundary limits)
+    - output: SOMETIMES REQUIRED (Adversary might actively manipulate or intercept inference responses in some advanced pipeline variants)
+    - training_samples / training_labels / weights / test_labels: NOT REQUIRED
+
+    Example 4: Attribute Inference
+    - All components: NOT REQUIRED (This attack is purely passive reconstruction/exfiltration; no pipeline elements are altered. Output is empty list)
+
+    === STRICT ONE-TO-MANY VALIDATION RULES ===
+    1. A single Technique CAN have a One-to-Many mapping to multiple Model Components (as demonstrated in the examples).
+    2. Crucial Guardrail: You are allowed to map multiple components ONLY if there is direct, strong, and undeniable text-based evidence in the provided graph context showing the technique actively alters or modifies those distinct artifacts.
+    3. If the evidence for an alteration path is speculative or purely hypothetical, you MUST drop that component from the list completely.
+
+    === CURRENT TASK TO EVALUATE ===
+    Using the extraction logic and grounding patterns demonstrated above, process the following live graph context:
+
+    {graph_context}
+
+    Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid alters_requirements.
+    """
