@@ -1,4 +1,4 @@
-# this code takes the classes of atlas and from them generate independent classes from the main class using its properties
+# this code takes the classes of atlas and from them generate independent classes from them using their properties without the use of llm; properties to entities
 
 import sys
 from pathlib import Path

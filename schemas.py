@@ -1,4 +1,14 @@
 # here we define the entities and relationships that we want to store in neo4j, and the properties of each entity and relationship 
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+ATLAS_PATH = ROOT / "atlas-data"
+
+print("ADDING PATH:", ATLAS_PATH)  # debug line
+
+sys.path.insert(0, str(ATLAS_PATH))
 from dataclasses import dataclass
 from enum import Enum
 
@@ -104,20 +114,22 @@ class RelationshipType(Enum):
     DEMONSTRATES = "demonstrates" # use case demonstrates  technique # 
     APPLIES_IN_PHASE = "applies_in_phase" # a mitigation applies in a lifecycle phase # example questions: currently under phase X in the developement, what measures should i take to prevent a breach?
     APPLIES_TO_PLATFORM = "applies_to_platform" # a tachnique applies to an platform # my project is using generative AI,what techniques should i be aware of? 
-    HAS_ACCESS_TO = "has_access_to" # a technique to be performed requires access to an platform component
+    HAS_ACCESS_TO = "has_access_to" # a technique to be performed requires access to an model component
     ALTERS = "alters" # An attacker uses technique to alter a model component
     HAS_SIMILAR_TECHNIQUES_TO = "similar_techniques_to" # a case study is similar to another case study in terms of techniques used
     OCCURS_AT = "occurs_at" # an attack occurs at a certain phase
-    TARGETS = "targets" # a technique targets a certain security objective (confidentiality, integrity, availability)
+    VIOLATES = "violates" # a technique violates a certain security objective (confidentiality, integrity, availability)
     
     
 ObjectId = (
     TacticId | TechniqueId | MitigationId | CaseStudyId | PlatformID | LifecyclePhaseID | ModelComponentID | SecurityObjectiveID | AttackPhaseID
 )
 
+@dataclass
 class Relationship(): # this is a simplified relationship class from
     source: ObjectId
     target: ObjectId
     relationship_type: RelationshipType
     description: str | None = Field(None, pattern=ASCII_TEXT)
-    mitigation_type : MitigationCategoryType | None = None
+    mitigation_type : list[MitigationCategoryType] | None = None
+    required: bool | None = None
