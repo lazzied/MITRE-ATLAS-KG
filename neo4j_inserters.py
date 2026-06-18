@@ -22,6 +22,8 @@ from scripts.classifiers.structural_classifiers.classify_mitigates import Mitiga
 from scripts.classifiers.structural_classifiers.classify_has_access_to import HasAccessToClassifier
 from scripts.classifiers.structural_classifiers.classify_occurs_at import OccursAtClassifier
 from scripts.classifiers.structural_classifiers.classify_violates import ViolatesClassifier
+from scripts.classifiers.similarity_classifiers.classify_case_studies_similarity import CaseStudySimilarityCalculator
+from scripts.classifiers.similarity_classifiers.classify_technique_similarity import TechniqueSimilarityCalculator
 
 
 class Neo4jDerivedInserter(Neo4jInserter):
@@ -89,14 +91,15 @@ class Neo4jAtlasInserter(Neo4jInserter):
                     self.insert_relationship(relationship)
 
 
-class Neo4jClassifiersInserter(Neo4jInserter):
-    def __init__(self, graph_store, llm):
+class Neo4jStructuralClassifiersInserter(Neo4jInserter):
+    def __init__(self, graph_store, llm, include_reasoning: bool = False):
         super().__init__(graph_store.client)
         self.graph_store = graph_store
         self.llm = llm
+        self.include_reasoning = include_reasoning
 
     def insert_structural_classifiers_relationships(self, classifier_cls, label: str) -> List[Any]:
-        classifier = classifier_cls(self.graph_store, self.llm)
+        classifier = classifier_cls(self.graph_store, self.llm, include_reasoning=self.include_reasoning)
         relationships = classifier.process_all_relationships()
 
         for relationship in relationships:
@@ -127,46 +130,41 @@ class Neo4jClassifiersInserter(Neo4jInserter):
         self.insert_violates_relationships()
         self.update_mitigates_relationships()
 
+class Neo4jSimilarityClassifiersInserter(Neo4jInserter):
+    def __init__(self, graph_store, llm, include_reasoning: bool = False):
+        super().__init__(graph_store.client)
+        self.graph_store = graph_store
+        self.llm = llm
+        self.include_reasoning = include_reasoning
+
+    def insert_similarity_classifiers_relationships(self, classifier_cls, label: str) -> List[Any]:
+        classifier = classifier_cls(self.graph_store, self.llm, include_reasoning=self.include_reasoning)
+        relationships = classifier.process_all_relationships()
+
+        for relationship in relationships:
+            self.insert_relationship(relationship)
+
+        print(f"Inserted/updated {len(relationships)} {label} relationships.")
+        return relationships
+
+    def insert_technique_similarity_relationships(self):
+        return self.insert_similarity_classifiers_relationships(
+            TechniqueSimilarityCalculator,
+            "technique IS_SIMILAR_TO"
+        )
+
+    def insert_case_study_similarity_relationships(self):
+        return self.insert_similarity_classifiers_relationships(
+            CaseStudySimilarityCalculator,
+            "case study IS_SIMILAR_TO"
+        )
+
+    def insert_all_similarity_classifiers_relationships(self) -> None:
+        self.insert_technique_similarity_relationships()
+        self.insert_case_study_similarity_relationships()
 
 if __name__ == "__main__":
-    client = Neo4jClient()
-    client.connect()
-    
-    path = Path("atlas-data/dist/v6/ATLAS-2026.05.yaml")
-    if not path.exists():
-        print(f"Error: Targeted blueprint file not discovered at location: {path}")
-        client.close()
-        sys.exit(1)
-        
-    with path.open("r") as f:
-        raw = yaml.safe_load(f)
+    from scripts.main_inserter import main
 
-    atlas_data = AtlasExport.model_validate(raw)
-    
-    # Generate derived metadata objects
-    derived_phases = generate_life_cycle_phase_dataclasses()
-    derived_platforms = generate_platform_dataclasses()
-    attack_phases = generate_attack_phase_dataclasses()
-    security_objectives = generate_security_objective_dataclasses()
-    model_components = generate_model_component_dataclasses()
-    
-    # Initialize the orchestration targets
-    atlas_inserter = Neo4jAtlasInserter(client.driver)
-    derived_inserter = Neo4jDerivedInserter(client.driver)
-    new_entity_inserter = Neo4jNewEntityInserter(client.driver)
-    
-    print("Beginning structural ingestion cycle...")
-    
-    # Execution pipeline execution chain
-    #atlas_inserter.insert_atlas_entities(atlas_data)
-    #atlas_inserter.insert_atlas_relationships(atlas_data)
-    
-    #derived_inserter.insert_derived_entities(derived_phases, derived_platforms)
-    #derived_inserter.insert_derived_relationships(atlas_data)
-    
-    new_entity_inserter.insert_new_entities(attack_phases,security_objectives,model_components,
-    )
-    
-    print("Ingestion sequence successfully committed.")
-    client.close()
+    main()
 

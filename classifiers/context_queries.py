@@ -23,9 +23,9 @@ RETURN source_node, collect({
 
 CASE_STUDY_QUERY = """
 MATCH (source_node:CaseStudy {id: $entity_id})
-OPTIONAL MATCH (source_node)-[:DEMONSTRATES]->(t:Technique)
+OPTIONAL MATCH (source_node)-[:EMPLOYS]->(t:Technique)
 RETURN source_node, collect({
-    rel_type: "DEMONSTRATES",
+    rel_type: "EMPLOYS",
     target_labels: labels(t),
     target_props: properties(t)
 }) as topology

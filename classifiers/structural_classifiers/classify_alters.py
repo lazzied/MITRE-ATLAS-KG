@@ -13,8 +13,8 @@ class AltersClassifier(BaseRelationshipClassifier):
     """
     Spins through techniques to isolate what components of the machine learning system they modify or manipulate.
     """
-    def __init__(self, graph_store, llm):
-        super().__init__(graph_store, llm, context_cypher_read=TECHNIQUE_CONTEXT_QUERY)
+    def __init__(self, graph_store, llm, include_reasoning: bool = False):
+        super().__init__(graph_store, llm, context_cypher_read=TECHNIQUE_CONTEXT_QUERY, include_reasoning=include_reasoning)
         self.prompt_template = ALTERS_PROMPT              
             
     def process_single_relationship(self, source_id: str, target_id: str | None = None) -> List[Relationship] | None:
@@ -48,7 +48,8 @@ class AltersClassifier(BaseRelationshipClassifier):
                         source=source_id,
                         target=link.target_entity.value,
                         relationship_type=RelationshipType.ALTERS,
-                        description=link.description.strip()
+                        description=link.description.strip(),
+                        reasoning=link.reasoning if self.include_reasoning else None,
                     )
                     relationships.append(rel_node)
 

@@ -1,18 +1,28 @@
 from abc import ABC, abstractmethod
 from typing import List, Any
 from scripts.schemas import EntityBooleanType, EntityType
+from scripts.classifiers.context_queries import CASE_STUDY_QUERY, MITIGATION_CONTEXT_QUERY, TECHNIQUE_CONTEXT_QUERY
+
+
+ENTITY_CONTEXT_QUERIES = {
+    EntityType.CASE_STUDY: CASE_STUDY_QUERY,
+    EntityType.MITIGATION: MITIGATION_CONTEXT_QUERY,
+    EntityType.TECHNIQUE: TECHNIQUE_CONTEXT_QUERY,
+}
 
 
 class BaseRelationshipClassifier(ABC):
 
-    def __init__(self, graph_store, llm,context_cypher_read):
+    def __init__(self, graph_store, llm, context_cypher_read, include_reasoning: bool = False):
         self.graph_store = graph_store
         self.llm = llm
         self.context_cypher_read = context_cypher_read
+        self.include_reasoning = include_reasoning
         
-    def get_context_from_entity(self, entity_id: str):
+    def get_context_from_entity(self, entity_id: str, entity_type: EntityType | None = None):
+        context_cypher_read = ENTITY_CONTEXT_QUERIES.get(entity_type, self.context_cypher_read)
         records, _, _ = self.graph_store.client.execute_query(
-            self.context_cypher_read, entity_id=entity_id
+            context_cypher_read, entity_id=entity_id
         )
         
         if not records or not records[0].get('source_node'):
@@ -29,7 +39,7 @@ class BaseRelationshipClassifier(ABC):
                                          entity_id: str,
                                          entity_type: EntityType) -> str:
         
-        topology, entity_properties = self.get_context_from_entity(entity_id)
+        topology, entity_properties = self.get_context_from_entity(entity_id, entity_type)
         
         context_prompt = ""
                 

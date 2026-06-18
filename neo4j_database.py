@@ -1,5 +1,6 @@
 
 import os
+from pathlib import Path
 from typing import Any, Union
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
@@ -38,9 +39,10 @@ class Neo4jInserter:
         AtlasRelationshipType.ACHIEVES: "ACHIEVES",
         AtlasRelationshipType.SPECIALIZES: "SUBTECHNIQUE_OF",
         AtlasRelationshipType.MITIGATES: "MITIGATES",
+        AtlasRelationshipType.EMPLOYS: "EMPLOYS",
         RelationshipType.SPECIALIZES: "SUBTECHNIQUE_OF",
         RelationshipType.MITIGATES: "MITIGATES",
-        RelationshipType.DEMONSTRATES: "DEMONSTRATES",
+        RelationshipType.EMPLOYS: "EMPLOYS",
         RelationshipType.APPLIES_TO_PLATFORM: "APPLIES_TO_PLATFORM",
         RelationshipType.APPLIES_IN_PHASE: "APPLIES_IN_PHASE",
         RelationshipType.HAS_ACCESS_TO: "HAS_ACCESS_TO",
@@ -102,6 +104,8 @@ class Neo4jInserter:
                 props["required"] = relationship.required
             if relationship.similar_to_coef is not None:
                 props["similar_to_coef"] = relationship.similar_to_coef
+            if relationship.reasoning:
+                props["reasoning"] = relationship.reasoning
 
 
         # Case B: Handle standard core AtlasRelationship components
@@ -129,7 +133,8 @@ class Neo4jInserter:
 
 class Neo4jClient:
     def __init__(self):
-        load_dotenv()
+        env_path = Path(__file__).resolve().parent / ".env"
+        load_dotenv(dotenv_path=env_path)
         self.uri = os.getenv("NEO4J_URI")
         self.auth = (
             os.getenv("NEO4J_USERNAME"),

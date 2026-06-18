@@ -110,7 +110,7 @@ class RelationshipType(Enum):
     ACHIEVES = "achieves" # technique achieves a tactic
     SPECIALIZES = "specializes" #subtechnique specializes a technique
     MITIGATES = "mitigates" #mitigation mitigates a technique
-    DEMONSTRATES = "demonstrates" # use case demonstrates  technique # 
+    EMPLOYS = "employs" # use case employs technique # 
     APPLIES_IN_PHASE = "applies_in_phase" # a mitigation applies in a lifecycle phase # example questions: currently under phase X in the developement, what measures should i take to prevent a breach?
     APPLIES_TO_PLATFORM = "applies_to_platform" # a tachnique applies to an platform # my project is using generative AI,what techniques should i be aware of? 
     HAS_ACCESS_TO = "has_access_to" # a technique to be performed requires access to an model component
@@ -137,3 +137,4 @@ class Relationship(): # this is a simplified relationship class from
     mitigation_type : list[MitigationCategoryType] | None = None
     required: bool | None = None
     similar_to_coef: float | None = None
+    reasoning: str | None = None

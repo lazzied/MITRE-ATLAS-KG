@@ -13,8 +13,8 @@ class HasAccessToClassifier(BaseRelationshipClassifier):
     """
     Spins through techniques to isolate what model components (e.g. weights, logs, training data) they require access to.
     """
-    def __init__(self, graph_store, llm):
-        super().__init__(graph_store, llm, context_cypher_read=TECHNIQUE_CONTEXT_QUERY)
+    def __init__(self, graph_store, llm, include_reasoning: bool = False):
+        super().__init__(graph_store, llm, context_cypher_read=TECHNIQUE_CONTEXT_QUERY, include_reasoning=include_reasoning)
         self.prompt_template = HAS_ACCESS_TO_PROMPT              
             
     def process_single_relationship(self, source_id: str, target_id: str | None = None) -> List[Relationship] | None:
@@ -52,6 +52,7 @@ class HasAccessToClassifier(BaseRelationshipClassifier):
                         target=link.target_entity.value,
                         relationship_type=RelationshipType.HAS_ACCESS_TO,
                         description=formatted_description,
+                        reasoning=link.reasoning if self.include_reasoning else None,
                     )
                     relationships.append(rel_node)
 

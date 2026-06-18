@@ -14,9 +14,9 @@ class MitigationClassifier(BaseRelationshipClassifier):
     Evaluates established binary links between Mitigations and Techniques 
     to map architectural defense coverage domains.
     """
-    def __init__(self, graph_store, llm):
+    def __init__(self, graph_store, llm, include_reasoning: bool = False):
         # Note: Ensure MITIGATION_CONTEXT_QUERY in your files targets $entity_id globally now!
-        super().__init__(graph_store, llm, context_cypher_read=MITIGATION_CONTEXT_QUERY)
+        super().__init__(graph_store, llm, context_cypher_read=MITIGATION_CONTEXT_QUERY, include_reasoning=include_reasoning)
         self.prompt_template = MITIGATION_PROMPT              
 
     def process_single_relationship(self, source_id: str, target_id: str | None = None) -> Relationship | None:
@@ -66,6 +66,7 @@ class MitigationClassifier(BaseRelationshipClassifier):
                     relationship_type=RelationshipType.MITIGATES,
                     description=target_rel.description,
                     mitigation_type=target_rel.categories,
+                    reasoning=target_rel.reasoning if self.include_reasoning else None,
                 )
 
             except Exception as e:

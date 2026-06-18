@@ -14,8 +14,8 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
     """
     Finds similar ATLAS techniques, then asks the LLM to write the explanation for each matched pair.
     """
-    def __init__(self, graph_store, llm):
-        super().__init__(graph_store, llm, context_cypher_read=TECHNIQUE_CONTEXT_QUERY)
+    def __init__(self, graph_store, llm, include_reasoning: bool = False):
+        super().__init__(graph_store, llm, context_cypher_read=TECHNIQUE_CONTEXT_QUERY, include_reasoning=include_reasoning)
         self.prompt_template = TECHNIQUE_SIMILARITY_PROMPT   
         
         self.similarity_math = TechniqueSimilarityCalculations()
@@ -72,9 +72,19 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
         )
         similarity_score = similarity_analysis["final_score"]
 
+        prompt_template = self.prompt_template
+        if not self.include_reasoning:
+            prompt_template = prompt_template.replace(
+                ',\n            "reasoning": "Brief technical sentence linking back to evidence parameters found in the graph context."',
+                ''
+            ).replace(
+                ',\n    "reasoning": "Overall high-level evaluation logic tying both models together."',
+                ''
+            )
+
         program = LLMTextCompletionProgram.from_defaults(
             output_cls=TechniqueSimilarityResponseSchema,
-            prompt_template_str=self.prompt_template,
+            prompt_template_str=prompt_template,
             llm=self.llm,
             verbose=False
         )
@@ -111,14 +121,16 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
                         target=target_id,
                         relationship_type=RelationshipType.IS_SIMILAR_TO,
                         description=description_text,
-                        similar_to_coef=similarity_score
+                        similar_to_coef=similarity_score,
+                        reasoning=target_rel.reasoning if self.include_reasoning else None,
                     ),
                     Relationship(
                         source=target_id,
                         target=source_id,
                         relationship_type=RelationshipType.IS_SIMILAR_TO,
                         description=description_text,
-                        similar_to_coef=similarity_score
+                        similar_to_coef=similarity_score,
+                        reasoning=target_rel.reasoning if self.include_reasoning else None,
                     )
                 ]
 

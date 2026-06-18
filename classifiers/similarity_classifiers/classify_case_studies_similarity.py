@@ -15,11 +15,11 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
     """
     Finds similar ATLAS case studies by comparing the techniques they demonstrate.
     """
-    def __init__(self, graph_store, llm=None, tech_calculator=None):
-        super().__init__(graph_store, llm, context_cypher_read=CASE_STUDY_QUERY)
+    def __init__(self, graph_store, llm=None, tech_calculator=None, include_reasoning: bool = False):
+        super().__init__(graph_store, llm, context_cypher_read=CASE_STUDY_QUERY, include_reasoning=include_reasoning)
         self.prompt_template = CASE_STUDY_SIMILARITY_PROMPT
         
-        self.tech_calculator = tech_calculator or TechniqueSimilarityCalculator(graph_store, llm)
+        self.tech_calculator = tech_calculator or TechniqueSimilarityCalculator(graph_store, llm, include_reasoning=include_reasoning)
         
         self.similarity_calculations = CaseStudySimilarityCalculations(
             tech_calculator=self.tech_calculator,
@@ -38,11 +38,11 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
         profile["case_id"] = profile.get("id", case_study_id)
         profile["techniques"] = set()
 
-        # Each DEMONSTRATES edge contributes one technique to the comparison set.
+        # Each EMPLOYS edge contributes one technique to the comparison set.
         for edge in topology:
             target_properties = edge.get("target_props", {})
             technique_id = target_properties.get("id")
-            if edge.get("rel_type") == "DEMONSTRATES" and technique_id:
+            if edge.get("rel_type") == "EMPLOYS" and technique_id:
                 profile["techniques"].add(technique_id)
 
         return profile
@@ -64,9 +64,19 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
         analysis = self.similarity_calculations.compute_case_study_similarity(case_study_source_props, case_study_target_props)
         similarity_score = analysis["final_score"]
 
+        prompt_template = self.prompt_template
+        if not self.include_reasoning:
+            prompt_template = prompt_template.replace(
+                ',\n            "reasoning": "Brief technical sentence linking back to evidence elements found in the graph context topology."',
+                ''
+            ).replace(
+                ',\n    "reasoning": "High-level threat intelligence logical tracking explaining why these two specific attack histories cluster together."',
+                ''
+            )
+
         program = LLMTextCompletionProgram.from_defaults(
             output_cls=CaseStudySimilarityResponseSchema,
-            prompt_template_str=self.prompt_template,
+            prompt_template_str=prompt_template,
             llm=self.llm,
             verbose=False
         )
@@ -106,14 +116,16 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
                         target=target_id,
                         relationship_type=RelationshipType.IS_SIMILAR_TO,
                         description=description_text,
-                        similar_to_coef=similarity_score
+                        similar_to_coef=similarity_score,
+                        reasoning=target_rel.reasoning if self.include_reasoning else None,
                     ),
                     Relationship(
                         source=target_id,
                         target=source_id,
                         relationship_type=RelationshipType.IS_SIMILAR_TO,
                         description=description_text,
-                        similar_to_coef=similarity_score
+                        similar_to_coef=similarity_score,
+                        reasoning=target_rel.reasoning if self.include_reasoning else None,
                     )
                 ]
             except Exception as e:

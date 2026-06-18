@@ -313,7 +313,7 @@ Target Output JSON Schema Contract:
             "source_entity": "{technique_id_1}",
             "target_entity": "{technique_id_2}",
             "similarity_coeff": {final_score},
-            "description": "Your clear, text-grounded architectural justification here.",
+            "description": "Concise, text-grounded summary of the shared technical mechanics.",
             "reasoning": "Brief technical sentence linking back to evidence parameters found in the graph context."
         }}
     ],
@@ -350,7 +350,7 @@ Target Output JSON Schema Contract:
             "source_entity": "{id_1}",
             "target_entity": "{id_2}",
             "similarity_coeff": {final_score},
-            "description": "Your professional threat intelligence narrative paragraph here explaining campaign crossovers.",
+            "description": "Concise, text-grounded summary of the behavioral overlap between these case studies.",
             "reasoning": "Brief technical sentence linking back to evidence elements found in the graph context topology."
         }}
     ],
