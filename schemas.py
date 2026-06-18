@@ -105,6 +105,7 @@ class EntityType(Enum):
     TACTIC = "tactic"
 
 class RelationshipType(Enum):
+    
     # define the relationship types between the entities (edges in the graph) an extended version of the ATLAS RELATIONSHIP TYPE
     
     ACHIEVES = "achieves" # technique achieves a tactic
