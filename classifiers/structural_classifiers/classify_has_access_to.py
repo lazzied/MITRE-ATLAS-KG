@@ -52,6 +52,7 @@ class HasAccessToClassifier(BaseRelationshipClassifier):
                         target=link.target_entity.value,
                         relationship_type=RelationshipType.HAS_ACCESS_TO,
                         description=formatted_description,
+                        required=link.required,
                         reasoning=link.reasoning if self.include_reasoning else None,
                     )
                     relationships.append(rel_node)
@@ -62,12 +63,15 @@ class HasAccessToClassifier(BaseRelationshipClassifier):
                 if "429" in str(e):
                     print(f"Rate limit hit. Hold on, retrying in a bit... (Attempt {attempt+1}/3)")
                     time.sleep(10)
+                elif "json_invalid" in str(e) or "Invalid JSON" in str(e):
+                    print(f"Invalid JSON returned. Retrying... (Attempt {attempt+1}/3)")
+                    time.sleep(2)
                 else:
                     raise e
                     
         return None
 
-    def process_all_relationships(self) -> List[Relationship]:
+    def process_all_relationships(self, on_relationship=None) -> List[Relationship]:
         """
         Pulls down every active technique profile saved in the system graph and streams them through evaluation.
         """
@@ -76,21 +80,33 @@ class HasAccessToClassifier(BaseRelationshipClassifier):
         RETURN t.id AS tech_id
         """
 
+        print("Loading techniques...")
         records, _, _ = self.graph_store.client.execute_query(find_pairs_query)
+        if not records:
+            raise RuntimeError("Technique query returned no rows. Stopping.")
+
+        total_relations = len(records)
         results: List[Relationship] = []
 
         for index, record in enumerate(records, start=1):
             tech_id = record["tech_id"]
+            if index == 1 or index % 10 == 0 or index == total_relations:
+                print(f"Processing technique {index}/{total_relations}...")
 
             try:
-                # FIXED: Direct clean key passing through the standardized execution channel
                 relationships = self.process_single_relationship(source_id=tech_id)
+                if relationships is None:
+                    raise RuntimeError("Warning: empty LLM response. Stopping.")
 
                 if relationships:
                     results.extend(relationships)
+                    if on_relationship:
+                        for relationship in relationships:
+                            on_relationship(relationship)
 
             except Exception as err:
-                print(f"  Failed processing HAS_ACCESS_TO relationship {tech_id}: {err}")
+                print(f"Mistral or classifier failed for HAS_ACCESS_TO {tech_id}: {err}")
+                raise
 
             time.sleep(2.5)
 

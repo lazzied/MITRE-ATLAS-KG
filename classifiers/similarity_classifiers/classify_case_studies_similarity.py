@@ -47,7 +47,14 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
 
         return profile
 
-    def process_single_relationship(self, source_id: str, target_id: str | None = None) -> List[Relationship] | None:
+    def process_single_relationship(
+        self,
+        source_id: str,
+        target_id: str | None = None,
+        analysis: dict | None = None,
+        source_profile: dict | None = None,
+        target_profile: dict | None = None,
+    ) -> List[Relationship] | None:
         """
         Calculates mathematical metrics, formats structural prompt vectors, and triggers 
         the structured LLM completion program once per unique pair to populate bidirectional links.
@@ -55,13 +62,19 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
         if self.llm is None:
             raise ValueError("An LLM instance must be provided to run process_single_relationship.")
 
-        _, case_study_source_props = self.get_context_from_entity(source_id)
-        _, case_study_target_props = self.get_context_from_entity(target_id)
+        case_study_source_props = source_profile
+        case_study_target_props = target_profile
+
+        if case_study_source_props is None:
+            _, case_study_source_props = self.get_context_from_entity(source_id)
+        if case_study_target_props is None:
+            _, case_study_target_props = self.get_context_from_entity(target_id)
 
         if not case_study_source_props or not case_study_target_props:
             return None
 
-        analysis = self.similarity_calculations.compute_case_study_similarity(case_study_source_props, case_study_target_props)
+        if analysis is None:
+            analysis = self.similarity_calculations.compute_case_study_similarity(case_study_source_props, case_study_target_props)
         similarity_score = analysis["final_score"]
 
         prompt_template = self.prompt_template
@@ -135,7 +148,7 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
                     raise e
         return None
 
-    def process_all_relationships(self) -> List[Relationship]:
+    def process_all_relationships(self, on_relationship=None) -> List[Relationship]:
         """
         Deduplicates matrix combinations globally using lexical constraints to enforce zero task repetition.
         """
@@ -143,11 +156,20 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
         top_n = 5
 
         find_all_query = "MATCH (c:CaseStudy) RETURN c.id AS case_id"
+        print("Loading case studies...")
         records, _, _ = self.graph_store.client.execute_query(find_all_query)
+        if not records:
+            raise RuntimeError("CaseStudy query returned no rows. Stopping.")
         
         case_study_ids = sorted([record["case_id"] for record in records])
         total_case_studies = len(case_study_ids)
         
+        profiles = {}
+        for case_study_id in case_study_ids:
+            _, profile = self.get_context_from_entity(case_study_id)
+            if profile:
+                profiles[case_study_id] = profile
+
         candidates = []
 
         # Compare each pair once; the insert step creates both directions later.
@@ -157,8 +179,8 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
                 case_study_target_id = case_study_ids[target_index]
                 
                 try:
-                    _, case_study_source_props = self.get_context_from_entity(case_study_source_id)
-                    _, case_study_target_props = self.get_context_from_entity(case_study_target_id)
+                    case_study_source_props = profiles.get(case_study_source_id)
+                    case_study_target_props = profiles.get(case_study_target_id)
                     
                     if not case_study_source_props or not case_study_target_props:
                         continue
@@ -170,11 +192,11 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
                     similarity_score = score_meta["final_score"]
                     
                     if similarity_score >= min_threshold:
-                        candidates.append((case_study_source_id, case_study_target_id, similarity_score))
+                        candidates.append((case_study_source_id, case_study_target_id, score_meta))
                 except Exception:
                     continue
 
-        candidates.sort(key=lambda x: x[2], reverse=True)
+        candidates.sort(key=lambda x: x[2]["final_score"], reverse=True)
         top_candidates = candidates[:top_n]
 
         results: List[Relationship] = []
@@ -184,17 +206,28 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
 
         print(f"Filtered down to top {len(top_candidates)} high-confidence deduplicated case study pairs.")
         
-        for index, (case_study_source_id, case_study_target_id, similarity_score) in enumerate(top_candidates, start=1):
-            print(f"[{index}/{len(top_candidates)}] Processing Symmetric Case Edge: ({case_study_source_id} <=> {case_study_target_id}) | Score: {similarity_score}")
+        for index, (case_study_source_id, case_study_target_id, score_meta) in enumerate(top_candidates, start=1):
+            similarity_score = score_meta["final_score"]
+            print(f"Processing case study similarity pair {index}/{len(top_candidates)}...")
             try:
                 bidirectional_edges = self.process_single_relationship(
                     source_id=case_study_source_id, 
-                    target_id=case_study_target_id
+                    target_id=case_study_target_id,
+                    analysis=score_meta,
+                    source_profile=profiles.get(case_study_source_id),
+                    target_profile=profiles.get(case_study_target_id),
                 )
+                if bidirectional_edges is None:
+                    raise RuntimeError("Warning: empty LLM response. Stopping.")
+
                 if bidirectional_edges:
                     results.extend(bidirectional_edges)
+                    if on_relationship:
+                        for relationship in bidirectional_edges:
+                            on_relationship(relationship)
             except Exception as err:
-                print(f"  Failed generating case study similarity description for unique pair ({case_study_source_id}, {case_study_target_id}): {err}")
+                print(f"Mistral or classifier failed for case study similarity {case_study_source_id} -> {case_study_target_id}: {err}")
+                raise
             time.sleep(1.5)
 
         return results

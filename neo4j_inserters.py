@@ -100,12 +100,30 @@ class Neo4jStructuralClassifiersInserter(Neo4jInserter):
 
     def insert_structural_classifiers_relationships(self, classifier_cls, label: str) -> List[Any]:
         classifier = classifier_cls(self.graph_store, self.llm, include_reasoning=self.include_reasoning)
-        relationships = classifier.process_all_relationships()
+        inserted_count = 0
+        skipped_count = 0
 
-        for relationship in relationships:
-            self.insert_relationship(relationship)
+        def persist_relationship(relationship):
+            nonlocal inserted_count, skipped_count
+            try:
+                inserted = self.insert_relationship(relationship)
+            except Exception as err:
+                print(f"Neo4j write failed: {err}")
+                raise
 
-        print(f"Inserted/updated {len(relationships)} {label} relationships.")
+            if inserted:
+                inserted_count += 1
+                if inserted_count % 25 == 0:
+                    print(f"{label}: {inserted_count} relationships inserted...")
+            else:
+                skipped_count += 1
+
+        print(f"Running {label} classifier...")
+        relationships = classifier.process_all_relationships(on_relationship=persist_relationship)
+
+        print(f"Completed: {inserted_count} {label} relationships inserted.")
+        if skipped_count:
+            print(f"Skipped {skipped_count} existing {label} relationships.")
         return relationships
 
     def insert_alters_relationships(self):
@@ -139,12 +157,30 @@ class Neo4jSimilarityClassifiersInserter(Neo4jInserter):
 
     def insert_similarity_classifiers_relationships(self, classifier_cls, label: str) -> List[Any]:
         classifier = classifier_cls(self.graph_store, self.llm, include_reasoning=self.include_reasoning)
-        relationships = classifier.process_all_relationships()
+        inserted_count = 0
+        skipped_count = 0
 
-        for relationship in relationships:
-            self.insert_relationship(relationship)
+        def persist_relationship(relationship):
+            nonlocal inserted_count, skipped_count
+            try:
+                inserted = self.insert_relationship(relationship)
+            except Exception as err:
+                print(f"Neo4j write failed: {err}")
+                raise
 
-        print(f"Inserted/updated {len(relationships)} {label} relationships.")
+            if inserted:
+                inserted_count += 1
+                if inserted_count % 10 == 0:
+                    print(f"{label}: {inserted_count} relationships inserted...")
+            else:
+                skipped_count += 1
+
+        print(f"Running {label} classifier...")
+        relationships = classifier.process_all_relationships(on_relationship=persist_relationship)
+
+        print(f"Completed: {inserted_count} {label} relationships inserted.")
+        if skipped_count:
+            print(f"Skipped {skipped_count} existing {label} relationships.")
         return relationships
 
     def insert_technique_similarity_relationships(self):

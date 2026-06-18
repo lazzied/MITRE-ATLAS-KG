@@ -64,7 +64,7 @@ class OccursAtClassifier(BaseRelationshipClassifier):
                     
         return None
 
-    def process_all_relationships(self) -> List[Relationship]:
+    def process_all_relationships(self, on_relationship=None) -> List[Relationship]:
         """
         Finds all system techniques, batches them through inference, and outputs enriched lifecycle relationship objects.
         """
@@ -73,21 +73,33 @@ class OccursAtClassifier(BaseRelationshipClassifier):
         RETURN t.id AS tech_id
         """
 
+        print("Loading techniques...")
         records, _, _ = self.graph_store.client.execute_query(find_pairs_query)
+        if not records:
+            raise RuntimeError("Technique query returned no rows. Stopping.")
+
+        total_relations = len(records)
         results: List[Relationship] = []
 
         for index, record in enumerate(records, start=1):
             tech_id = record["tech_id"]
+            if index == 1 or index % 10 == 0 or index == total_relations:
+                print(f"Processing technique {index}/{total_relations}...")
 
             try:
-                # FIXED: Standardized call passing the identifier key directly
                 relationships = self.process_single_relationship(source_id=tech_id)
+                if relationships is None:
+                    raise RuntimeError("Warning: empty LLM response. Stopping.")
                 
                 if relationships:
                     results.extend(relationships)
+                    if on_relationship:
+                        for relationship in relationships:
+                            on_relationship(relationship)
 
             except Exception as err:
-                print(f"  Failed processing OCCURS_AT relationship {tech_id}: {err}")
+                print(f"Mistral or classifier failed for OCCURS_AT {tech_id}: {err}")
+                raise
 
             time.sleep(2.5)
 

@@ -56,21 +56,34 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
 
         return profile
 
-    def process_single_relationship(self, source_id: str, target_id: str | None = None) -> List[Relationship] | None:
+    def process_single_relationship(
+        self,
+        source_id: str,
+        target_id: str | None = None,
+        similarity_score: float | None = None,
+        source_profile: dict | None = None,
+        target_profile: dict | None = None,
+    ) -> List[Relationship] | None:
         """
         Runs an LLM call once for a unique pair and returns a list containing both directional edges.
         """
-        _, source_technique_profile = self.get_context_from_entity(source_id)
-        _, target_technique_profile = self.get_context_from_entity(target_id)
+        source_technique_profile = source_profile
+        target_technique_profile = target_profile
+
+        if source_technique_profile is None:
+            _, source_technique_profile = self.get_context_from_entity(source_id)
+        if target_technique_profile is None:
+            _, target_technique_profile = self.get_context_from_entity(target_id)
         
         if not source_technique_profile or not target_technique_profile:
             return None
 
-        similarity_analysis = self.similarity_math.compute_technique_similarity(
-            source_technique_profile,
-            target_technique_profile
-        )
-        similarity_score = similarity_analysis["final_score"]
+        if similarity_score is None:
+            similarity_analysis = self.similarity_math.compute_technique_similarity(
+                source_technique_profile,
+                target_technique_profile
+            )
+            similarity_score = similarity_analysis["final_score"]
 
         prompt_template = self.prompt_template
         if not self.include_reasoning:
@@ -142,7 +155,7 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
                     raise e
         return None
 
-    def process_all_relationships(self) -> List[Relationship]:
+    def process_all_relationships(self, on_relationship=None) -> List[Relationship]:
         """
         Deduplicates matrix combinations globally using lexical constraints to enforce zero task repetition.
         """
@@ -150,11 +163,20 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
         top_n = 5
 
         find_all_query = "MATCH (t:Technique) RETURN t.id AS tech_id"
+        print("Loading techniques...")
         records, _, _ = self.graph_store.client.execute_query(find_all_query)
+        if not records:
+            raise RuntimeError("Technique query returned no rows. Stopping.")
         
         technique_ids = sorted([record["tech_id"] for record in records])
         total_techniques = len(technique_ids)
         
+        profiles = {}
+        for technique_id in technique_ids:
+            _, profile = self.get_context_from_entity(technique_id)
+            if profile:
+                profiles[technique_id] = profile
+
         candidates = []
 
         # Compare each pair once; the insert step creates both directions later.
@@ -164,8 +186,8 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
                 target_technique_id = technique_ids[target_index]
                 
                 try:
-                    _, source_profile = self.get_context_from_entity(source_technique_id)
-                    _, target_profile = self.get_context_from_entity(target_technique_id)
+                    source_profile = profiles.get(source_technique_id)
+                    target_profile = profiles.get(target_technique_id)
                     
                     if not source_profile or not target_profile:
                         continue
@@ -190,20 +212,29 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
         
         for index, (source_technique_id, target_technique_id, similarity_score) in enumerate(top_candidates, start=1):
             
-            print(f"[{index}/{len(top_candidates)}] Processing Symmetric Edge: ({source_technique_id} <=> {target_technique_id}) | Score: {similarity_score}")
+            print(f"Processing technique similarity pair {index}/{len(top_candidates)}...")
             
             try:
                 
                 bidirectional_edges = self.process_single_relationship(
                     source_id=source_technique_id,
-                    target_id=target_technique_id
+                    target_id=target_technique_id,
+                    similarity_score=similarity_score,
+                    source_profile=profiles.get(source_technique_id),
+                    target_profile=profiles.get(target_technique_id),
                 )
+                if bidirectional_edges is None:
+                    raise RuntimeError("Warning: empty LLM response. Stopping.")
                 
                 if bidirectional_edges:
                     results.extend(bidirectional_edges)
+                    if on_relationship:
+                        for relationship in bidirectional_edges:
+                            on_relationship(relationship)
                     
             except Exception as err:
-                print(f"  Failed generating similarity description for unique pair ({source_technique_id}, {target_technique_id}): {err}")
+                print(f"Mistral or classifier failed for technique similarity {source_technique_id} -> {target_technique_id}: {err}")
+                raise
             time.sleep(1.5)
 
         return results

@@ -64,7 +64,7 @@ class BaseRelationshipClassifier(ABC):
 
 
     @abstractmethod
-    def process_all_relationships(self) -> List[Any]:
+    def process_all_relationships(self, on_relationship=None) -> List[Any]:
         """
         Finds pairs, batches them through inference, and outputs enriched custom schema objects.
         """

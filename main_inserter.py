@@ -56,9 +56,13 @@ def main() -> None:
         derived_inserter = Neo4jDerivedInserter(client.driver)
         new_entity_inserter = Neo4jNewEntityInserter(client.driver)
 
+        print("\nPreparing Neo4j constraints and indexes...")
+        atlas_inserter.ensure_schema()
+        print("Neo4j schema preparation complete.")
+
         print("\n[1/4] Inserting ATLAS entities and relationships...")
-        atlas_inserter.insert_atlas_entities(atlas_data)
-        atlas_inserter.insert_atlas_relationships(atlas_data)
+        #atlas_inserter.insert_atlas_entities(atlas_data)
+        #atlas_inserter.insert_atlas_relationships(atlas_data)
         print("ATLAS entities and relationships inserted.")
 
         print("\n[2/4] Inserting derived entities and relationships...")

@@ -7,47 +7,47 @@ from atlas.enums import MitigationLifecyclePhasesType, TechniquePlatformType
 from atlas.schemas import ASCII_TEXT, CaseStudyId, MitigationId, TacticId, TechniqueId
 
 class PlatformID (Enum):
-    PREDICTIVE = "predictive"
-    GENERATIVE = "generative"
-    AGENTIC = "agentic"
-    ENTERPRISE = "enterprise"
+    PREDICTIVE = "pl.pred"
+    GENERATIVE = "pl.gen"
+    AGENTIC = "pl.agent"
+    ENTERPRISE = "pl.ent"
      
      
 class LifecyclePhaseID (Enum):
-    DATA_UNDERSTANDING = "data_understanding"
-    DATA_PREPARATION = "data_preparation"
-    MODEL_ENGINEERING = "model_engineering"
-    MODEL_EVALUATION = "model_evaluation"
-    DEPLOYMENT = "deployment"
-    MONITORING = "monitoring"
+    DATA_UNDERSTANDING = "lc.du"
+    DATA_PREPARATION = "lc.dp"
+    MODEL_ENGINEERING = "lc.me"
+    MODEL_EVALUATION = "lc.ev"
+    DEPLOYMENT = "lc.dep"
+    MONITORING = "lc.mon"
 
 class ModelComponentID (Enum):
-    TRAINING_SAMPLES = "training_samples"
-    TRAINING_LABELS = "training_labels"
-    TEST_SAMPLES = "test_samples"
-    TEST_LABELS = "test_labels"
-    WEIGHTS = "weights"
-    OUTPUT = "output"
+    TRAINING_SAMPLES = "tr.s"
+    TRAINING_LABELS = "tr.l"
+    TEST_SAMPLES = "ts.s"
+    TEST_LABELS = "ts.l"
+    WEIGHTS = "m.w"
+    OUTPUT = "m.out"
     
 class SecurityObjectiveID (Enum):
-    CONFIDENTIALITY = "confidentiality"
-    INTEGRITY = "integrity"
-    AVAILABILITY = "availability"
+    CONFIDENTIALITY = "sec.c"
+    INTEGRITY = "sec.i"
+    AVAILABILITY = "sec.a"
     
 class AttackPhaseID (Enum):
-    INFERENCE = "inference"
-    TRAINING = "training"
+    INFERENCE = "ap.inf"
+    TRAINING = "ap.tr"
 
 @dataclass
 class Platform():
     id: PlatformID
-    type: TechniquePlatformType
+    name: TechniquePlatformType
     description: str
 
 @dataclass
 class LifeCyclePhase():
     id: LifecyclePhaseID
-    type: MitigationLifecyclePhasesType
+    name: MitigationLifecyclePhasesType
     description:str 
 
 
@@ -62,7 +62,7 @@ class ModelComponentType(Enum):
 @dataclass
 class ModelComponent():
     id: ModelComponentID
-    type: ModelComponentType
+    name: ModelComponentType
     description:str
 
 
@@ -75,7 +75,7 @@ class SecurityObjectiveType(Enum):
 @dataclass
 class SecurityObjective():
     id: SecurityObjectiveID
-    type: SecurityObjectiveType
+    name: SecurityObjectiveType
     description:str
     
 class AttackPhaseType(Enum):
@@ -85,7 +85,7 @@ class AttackPhaseType(Enum):
 @dataclass
 class AttackPhase():
     id: AttackPhaseID
-    type: AttackPhaseType
+    name: AttackPhaseType
     description:str
 
 class MitigationCategoryType(Enum):

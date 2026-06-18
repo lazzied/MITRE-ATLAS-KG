@@ -14,7 +14,12 @@ def get_connections():
     
     #  initialize llm
     mistral_key = os.getenv("MISTRAL_API_KEY")
-    llm = MistralAI(model="mistral-small-latest", api_key=mistral_key, temperature=0.0)
+    llm = MistralAI(
+        model="mistral-small-latest",
+        api_key=mistral_key,
+        temperature=0.0,
+        max_tokens=2048,
+    )
     
     # initialize llm for
     graph_store = Neo4jPropertyGraphStore(

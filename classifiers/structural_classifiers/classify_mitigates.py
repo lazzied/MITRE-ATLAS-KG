@@ -78,7 +78,7 @@ class MitigationClassifier(BaseRelationshipClassifier):
                     
         return None
 
-    def process_all_relationships(self) -> List[Relationship]:
+    def process_all_relationships(self, on_relationship=None) -> List[Relationship]:
         """
         Finds pairs, executes independent context builders, and tracks the global system run profile.
         """
@@ -87,33 +87,36 @@ class MitigationClassifier(BaseRelationshipClassifier):
         RETURN m.id AS mit_id, t.id AS tech_id
         """
 
-        print("Searching database for relationship pairs...")
+        print("Loading mitigation relationships...")
         records, _, _ = self.graph_store.client.execute_query(find_pairs_query)
+        if not records:
+            raise RuntimeError("MITIGATES query returned no rows. Stopping.")
 
         total_relations = len(records)
-        print(f"Found {total_relations} relationships to evaluate.\n")
+        print(f"Found {total_relations} relationships to evaluate.")
 
         results: List[Relationship] = []
 
         for index, record in enumerate(records, start=1):
             mit_id = record["mit_id"]
             tech_id = record["tech_id"]
-
-            print(f"[{index}/{total_relations}] Analyzing Link: ({mit_id}) -> ({tech_id})")
+            if index == 1 or index % 10 == 0 or index == total_relations:
+                print(f"Processing mitigation link {index}/{total_relations}...")
 
             try:
-                # FIXED: Removed broken build_graph_context intermediary step. 
-                # Keys pass directly through the uniform entry point.
                 relationship = self.process_single_relationship(source_id=mit_id, target_id=tech_id)
+                if relationship is None:
+                    raise RuntimeError("Warning: empty LLM response. Stopping.")
 
                 if relationship:
-                    print(f"  Determined Classes: {[cat.value.upper() for cat in relationship.mitigation_type]}")
                     results.append(relationship)
+                    if on_relationship:
+                        on_relationship(relationship)
 
             except Exception as err:
-                print(f" Failed processing link {mit_id} -> {tech_id}: {err}")
+                print(f"Mistral or classifier failed for MITIGATES {mit_id} -> {tech_id}: {err}")
+                raise
 
-            print("-" * 40)
             time.sleep(2.5)
 
         return results

@@ -88,6 +88,23 @@ class CaseStudySimilarityCalculations:
         
         # The higher-level database profile parser engine passing contextual data down
         self.tech_calculator = tech_calculator
+        self._tech_profile_cache = {}
+        self._tech_similarity_cache = {}
+
+    def _get_technique_profile(self, technique_id: str) -> Dict[str, Any]:
+        if technique_id not in self._tech_profile_cache:
+            _, profile = self.tech_calculator.get_context_from_entity(technique_id)
+            self._tech_profile_cache[technique_id] = profile
+        return self._tech_profile_cache[technique_id]
+
+    def _compute_soft_technique_similarity(self, source_technique: str, target_technique: str) -> float:
+        pair_key = tuple(sorted((source_technique, target_technique)))
+        if pair_key not in self._tech_similarity_cache:
+            source_profile = self._get_technique_profile(source_technique)
+            target_profile = self._get_technique_profile(target_technique)
+            similarity_analysis = self.tech_math.compute_technique_similarity(source_profile, target_profile)
+            self._tech_similarity_cache[pair_key] = similarity_analysis["final_score"]
+        return self._tech_similarity_cache[pair_key]
 
     def compute_case_study_similarity(self, profile_1: Dict[str, Any], profile_2: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -121,12 +138,7 @@ class CaseStudySimilarityCalculations:
             for target_technique in target_only_techniques:
                 try:
                     if self.tech_calculator and hasattr(self.tech_calculator, 'get_context_from_entity'):
-                        _, source_profile = self.tech_calculator.get_context_from_entity(source_technique)
-                        _, target_profile = self.tech_calculator.get_context_from_entity(target_technique)
-                        
-                        # Process using the local pure math instance
-                        similarity_analysis = self.tech_math.compute_technique_similarity(source_profile, target_profile)
-                        similarity_score = similarity_analysis["final_score"]
+                        similarity_score = self._compute_soft_technique_similarity(source_technique, target_technique)
                         
                         if similarity_score > best_score:
                             best_score = similarity_score

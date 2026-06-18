@@ -13,7 +13,7 @@ def generate_life_cycle_phase_dataclasses() -> list[LifeCyclePhase]:
         phases.append(
             LifeCyclePhase(
                 id=LifecyclePhaseID[phase_type.name],
-                type=phase_type,
+                name=phase_type,
                 description=description,
             )
         )
@@ -25,7 +25,7 @@ def generate_platform_dataclasses() -> list[Platform]:
     return [
         Platform(
             id=PlatformID[platform_type.name],
-            type=platform_type,
+            name=platform_type,
             description=description,
         )
         for platform_type, description
@@ -37,7 +37,7 @@ def transform_lifecycle_phase(
 ) -> dict:
     return {
         "id": phase.id.value,
-        "type": phase.type.value,
+        "name": phase.name.value,
         "description": phase.description,
     }
 
@@ -47,7 +47,7 @@ def transform_platform(
 ) -> dict:
     return {
         "id": platform.id.value,
-        "type": platform.type.value,
+        "name": platform.name.value,
         "description": platform.description,
     }
 

@@ -12,10 +12,10 @@ TARGET RELATIONSHIP EVALUATION: MITIGATION -[MITIGATES]-> TECHNIQUE
 === FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
 
 Example 1: Sanitize Training Data -[MITIGATES]-> Poisoning, label flip
-- PREVENTIVE: (Filtering and validating training_samples/training_labels before ingestion removes the poisoned data the technique depends on, eliminating the requirement before training begins)
+- PREVENTIVE: (Filtering and validating tr.s/tr.l before ingestion removes the poisoned data the technique depends on, eliminating the requirement before training begins)
 
 Example 2: Adversarial Input Detection -[MITIGATES]-> Evasion, white-box
-- DETECTIVE: (Statistical or model-based detectors flag perturbed test_samples at inference time, identifying the active execution footprint of the technique)
+- DETECTIVE: (Statistical or model-based detectors flag perturbed ts.s at inference time, identifying the active execution footprint of the technique)
 
 Example 3: Rate Limiting / Query Throttling -[MITIGATES]-> Model Stealing
 - HARDENING: (Capping the volume of queries against the output endpoint limits how much functional information an adversary can extract per unit time, reducing blast radius without preventing querying altogether)
@@ -50,12 +50,12 @@ Task: Your job is to extract access dependencies between an offensive Technique 
 TARGET RELATIONSHIP EVALUATION: TECHNIQUE -[HAS_ACCESS_TO]-> MODEL COMPONENT
 
 === TARGET MODEL COMPONENT OPTIONS ===
-- training_samples
-- training_labels
-- test_samples
-- test_labels
-- weights
-- output
+- tr.s (Training samples)
+- tr.l (Training labels)
+- ts.s (Test samples)
+- ts.l (Test labels)
+- m.w (Weights)
+- m.out (Output)
 
 === RELATIONSHIP STRUCTURING CRITERIA ===
 THE "REQUIRED" ATTRIBUTE OF THE RELATIONSHIP FOLLOWS THIS CRITERIA:
@@ -66,21 +66,21 @@ THE "REQUIRED" ATTRIBUTE OF THE RELATIONSHIP FOLLOWS THIS CRITERIA:
 === FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
 
 Example 1: Poisoning, bilevel (Data Poisoning Attack) -> [Valid One-to-Many Output]
-- training_samples: REQUIRED (The adversary must inject or manipulate data entering the training pool)
-- training_labels: REQUIRED (The attack relies on modifying or knowing corresponding training labels for optimization)
-- weights: OPTIONAL (A cleaner optimization can be achieved if weights are known, but white-box access isn't strictly mandatory)
-- test_samples / test_labels / output: NO RELATIONSHIP (The attack is executed entirely during the pre-deployment phase)
+- tr.s: REQUIRED (The adversary must inject or manipulate data entering the training pool)
+- tr.l: REQUIRED (The attack relies on modifying or knowing corresponding training labels for optimization)
+- m.w: OPTIONAL (A cleaner optimization can be achieved if weights are known, but white-box access isn't strictly mandatory)
+- ts.s / ts.l / m.out: NO RELATIONSHIP (The attack is executed entirely during the pre-deployment phase)
 
 Example 2: Evasion, white-box (Adversarial Perturbation) -> [Valid One-to-Many Output]
-- test_samples: REQUIRED (The adversary manipulates current input evaluation samples)
-- test_labels: REQUIRED (Needed to calculate loss vector adjustments away from the true target label)
-- weights: REQUIRED (White-box explicitly mandates direct access to model layers, parameters, and gradients)
-- training_samples / training_labels: NO RELATIONSHIP
+- ts.s: REQUIRED (The adversary manipulates current input evaluation samples)
+- ts.l: REQUIRED (Needed to calculate loss vector adjustments away from the true target label)
+- m.w: REQUIRED (White-box explicitly mandates direct access to model layers, parameters, and gradients)
+- tr.s / tr.l: NO RELATIONSHIP
 
 Example 3: Model Stealing (Functional Replication) -> [Valid One-to-Many Output]
-- output: REQUIRED (The adversary must query the model's inference API and observe returned labels or confidence scores)
-- test_samples: OPTIONAL (The attacker can use a separate synthetic dataset to query the target black-box API)
-- training_samples / training_labels / weights: NO RELATIONSHIP
+- m.out: REQUIRED (The adversary must query the model's inference API and observe returned labels or confidence scores)
+- ts.s: OPTIONAL (The attacker can use a separate synthetic dataset to query the target black-box API)
+- tr.s / tr.l / m.w: NO RELATIONSHIP
 
 === STRICT ONE-TO-MANY VALIDATION RULES ===
 1. A single Technique CAN have a One-to-Many mapping to multiple Model Components (as demonstrated in the examples).
@@ -94,6 +94,8 @@ Below is the network context from the Graph Database. It contains the attributes
 
 === LIVE EXTRACTION PROCESS ===
 Analyze the attributes of "{technique_id}" and its neighborhood. Extract all valid access_requirements conforming to the strict validation rules.
+
+Return only compact valid JSON matching the requested schema. Keep each description and reasoning to one short sentence. If no component is supported, return {"entity_relationships": []}.
 """
 
 
@@ -104,8 +106,8 @@ Task: Your job is to extract lifecycle dependencies mapping an offensive Techniq
 TARGET RELATIONSHIP EVALUATION: TECHNIQUE -[OCCURS_AT]-> ATTACK_PHASE
 
 === TARGET ATTACK PHASE OPTIONS ===
-- training: Pre-deployment pipeline operations. Includes dataset curation, labeling configurations, training execution, optimization cycles, and model supply-chain storage.
-- inference: Post-deployment production operations. Includes querying the live API, sending production payloads, processing model outputs, monitoring telemetry, or attacking deployed edge models.
+- ap.tr (Training): Pre-deployment pipeline operations. Includes dataset curation, labeling configurations, training execution, optimization cycles, and model supply-chain storage.
+- ap.inf (Inference): Post-deployment production operations. Includes querying the live API, sending production payloads, processing model outputs, monitoring telemetry, or attacking deployed edge models.
 
 === LIFECYCLE CLASSIFICATION PROTOCOL ===
 Analyze the technical description of the technique and any associated operational Case Studies:
@@ -114,11 +116,11 @@ Analyze the technical description of the technique and any associated operationa
 3. You may assign BOTH phases if and only if the technique exhibits clear multi-variant execution traits across the dataset (e.g., a technique that poisons training data but requires a secondary payload insertion at test time). Otherwise, stick to the primary phase.
 
 === LIFECYCLE REFERENCE EXAMPLES ===
-- Poisoning, bilevel -> phase_id: training (Manipulates the training optimization space)
-- Poisoning, label flip -> phase_id: training (Corrupts training annotations before model fitting)
-- Backdoor -> phase_id: training AND phase_id: inference (Requires injecting a trigger into training, and triggering the payload during inference test queries)
-- Evasion (White-box/Black-box) -> phase_id: inference (Perturbs inputs against an active, deployed inference pipeline)
-- Model Stealing -> phase_id: inference (Queries the deployment API to extract outputs and map internal parameters)
+- Poisoning, bilevel -> phase_id: ap.tr (Manipulates the training optimization space)
+- Poisoning, label flip -> phase_id: ap.tr (Corrupts training annotations before model fitting)
+- Backdoor -> phase_id: ap.tr AND phase_id: ap.inf (Requires injecting a trigger into training, and triggering the payload during inference test queries)
+- Evasion (White-box/Black-box) -> phase_id: ap.inf (Perturbs inputs against an active, deployed inference pipeline)
+- Model Stealing -> phase_id: ap.inf (Queries the deployment API to extract outputs and map internal parameters)
 
 === GRAPH DATA CONTEXT ===
 Below is the network context from the Graph Database. It contains the attributes of both nodes.
@@ -137,12 +139,12 @@ Task: Your job is to extract alteration dependencies between an offensive Techni
 TARGET RELATIONSHIP EVALUATION: TECHNIQUE -[ALTERS]-> MODEL COMPONENT
 
 === TARGET MODEL COMPONENT OPTIONS ===
-- training_samples
-- training_labels
-- test_samples
-- test_labels
-- weights
-- output
+- tr.s (Training samples)
+- tr.l (Training labels)
+- ts.s (Test samples)
+- ts.l (Test labels)
+- m.w (Weights)
+- m.out (Output)
 
 === RELATIONSHIP STRUCTURING CRITERIA ===
 THE "REQUIRED" ATTRIBUTE OF THE RELATIONSHIP FOLLOWS THIS CRITERIA (same scheme as HAS_ACCESS_TO, applied to active modification rather than mere access):
@@ -153,20 +155,20 @@ THE "REQUIRED" ATTRIBUTE OF THE RELATIONSHIP FOLLOWS THIS CRITERIA (same scheme 
 === FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
 
 Example 1: Poisoning, bilevel
-- training_samples: REQUIRED (Directly manipulates data going into the training pipeline pool)
-- training_labels: OPTIONAL (Alters training labels conditionally, depending on the optimization target)
-- test_samples / test_labels / weights / output: NO RELATIONSHIP (No active modification happens to these components)
+- tr.s: REQUIRED (Directly manipulates data going into the training pipeline pool)
+- tr.l: OPTIONAL (Alters training labels conditionally, depending on the optimization target)
+- ts.s / ts.l / m.w / m.out: NO RELATIONSHIP (No active modification happens to these components)
 
 Example 2: Backdoor (Trojaning Attack)
-- training_samples: REQUIRED (Must inject a trigger pattern into the training data pool)
-- training_labels: OPTIONAL (May alter or corrupt labels to map to the backdoor target class, depending on the variant)
-- test_samples: REQUIRED (Alters or appends the trigger pattern onto input evaluation/test instances at inference time)
-- test_labels / weights / output: NO RELATIONSHIP
+- tr.s: REQUIRED (Must inject a trigger pattern into the training data pool)
+- tr.l: OPTIONAL (May alter or corrupt labels to map to the backdoor target class, depending on the variant)
+- ts.s: REQUIRED (Alters or appends the trigger pattern onto input evaluation/test instances at inference time)
+- ts.l / m.w / m.out: NO RELATIONSHIP
 
 Example 3: Evasion, black-box
-- test_samples: REQUIRED (The adversary actively perturbs test or evaluation samples to dodge classification boundary limits)
-- output: OPTIONAL (Adversary might actively manipulate or intercept inference responses in some advanced pipeline variants)
-- training_samples / training_labels / weights / test_labels: NO RELATIONSHIP
+- ts.s: REQUIRED (The adversary actively perturbs test or evaluation samples to dodge classification boundary limits)
+- m.out: OPTIONAL (Adversary might actively manipulate or intercept inference responses in some advanced pipeline variants)
+- tr.s / tr.l / m.w / ts.l: NO RELATIONSHIP
 
 Example 4: Attribute Inference
 - All components: NO RELATIONSHIP (This attack is purely passive reconstruction/exfiltration; no pipeline elements are altered. Output is an empty list)
@@ -244,35 +246,35 @@ AVAILABILITY Options:
 Use these standard baselines to guide your classification thresholds:
 
 - Poisoning, bilevel
-  * Objective: availability -> ["Decrease model performance"]
+  * Objective: sec.a -> ["Decrease model performance"]
   * Confidentiality: NO RELATIONSHIP | Integrity: NO RELATIONSHIP
 
 - Poisoning, label flip
-  * Objective: availability -> ["Decrease model performance"]
+  * Objective: sec.a -> ["Decrease model performance"]
   * Confidentiality: NO RELATIONSHIP | Integrity: NO RELATIONSHIP
 
 - Backdoor
-  * Objective: integrity -> ["Misclassify samples with trigger"]
+  * Objective: sec.i -> ["Misclassify samples with trigger"]
   * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
 - Evasion, white-box
-  * Objective: integrity -> ["Misclassify perturbed samples"]
+  * Objective: sec.i -> ["Misclassify perturbed samples"]
   * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
 - Evasion, black-box
-  * Objective: integrity -> ["Misclassify perturbed samples"]
+  * Objective: sec.i -> ["Misclassify perturbed samples"]
   * Confidentiality: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
 - Model Stealing
-  * Objective: confidentiality -> ["Copy model without consent"]
+  * Objective: sec.c -> ["Copy model without consent"]
   * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
 - Membership Inference (Mem. Inf.)
-  * Objective: confidentiality -> ["Infer sample membership"]
+  * Objective: sec.c -> ["Infer sample membership"]
   * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
 - Attribute Inference (Attribute Inf.)
-  * Objective: confidentiality -> ["Infer training data attributes"]
+  * Objective: sec.c -> ["Infer training data attributes"]
   * Integrity: NO RELATIONSHIP | Availability: NO RELATIONSHIP
 
 === GRAPH DATA CONTEXT ===
