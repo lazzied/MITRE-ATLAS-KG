@@ -4,7 +4,7 @@ from pathlib import Path
 
 from atlas.schemas import AtlasExport
 from scripts.classifiers.initialization import get_connections
-from scripts.derived_entities import (
+from scripts.entities.derived_entities import (
     generate_life_cycle_phase_dataclasses,
     generate_platform_dataclasses,
 )
@@ -16,7 +16,7 @@ from scripts.neo4j_inserters import (
     Neo4jSimilarityClassifiersInserter,
     Neo4jStructuralClassifiersInserter,
 )
-from scripts.new_entities import (
+from scripts.entities.new_entities import (
     generate_attack_phase_dataclasses,
     generate_model_component_dataclasses,
     generate_security_objective_dataclasses,
@@ -66,13 +66,15 @@ def main() -> None:
         print("ATLAS entities and relationships inserted.")
 
         print("\n[2/4] Inserting derived entities and relationships...")
-        derived_inserter.insert_derived_entities(derived_phases, derived_platforms)
+        #derived_inserter.insert_derived_entities(derived_phases, derived_platforms)
+        """
         new_entity_inserter.insert_new_entities(
             attack_phases,
             security_objectives,
             model_components,
         )
-        derived_inserter.insert_derived_relationships(atlas_data)
+        """
+        #derived_inserter.insert_derived_relationships(atlas_data)
         print("Derived entities and relationships inserted.")
 
         print("\n[3/4] Running structural classifiers...")
@@ -82,8 +84,8 @@ def main() -> None:
         print("Structural classifier relationships inserted.")
 
         print("\n[4/4] Running similarity classifiers...")
-        similarity_inserter = Neo4jSimilarityClassifiersInserter(graph_store, llm)
-        similarity_inserter.insert_all_similarity_classifiers_relationships()
+        #similarity_inserter = Neo4jSimilarityClassifiersInserter(graph_store, llm)
+        #similarity_inserter.insert_all_similarity_classifiers_relationships()
         print("Similarity classifier relationships inserted.")
 
         print("\nComplete Neo4j insertion pipeline successfully committed.")

@@ -6,17 +6,11 @@ from typing import List, Any
 from atlas.schemas import AtlasExport
 from scripts.classifiers.initialization import get_connections
 from scripts.neo4j_database import Neo4jClient, Neo4jInserter
-from scripts.derived_entities import (
-    generate_life_cycle_phase_dataclasses, 
+from scripts.entities.derived_entities import (
     generate_applies_in_phase_relationship, 
-    generate_platform_dataclasses, 
     generate_applies_to_platform_relationship, 
 )
-from scripts.new_entities import (
-    generate_attack_phase_dataclasses,
-    generate_model_component_dataclasses,
-    generate_security_objective_dataclasses,
-)
+
 from scripts.classifiers.structural_classifiers.classify_alters import AltersClassifier
 from scripts.classifiers.structural_classifiers.classify_mitigates import MitigationClassifier
 from scripts.classifiers.structural_classifiers.classify_has_access_to import HasAccessToClassifier

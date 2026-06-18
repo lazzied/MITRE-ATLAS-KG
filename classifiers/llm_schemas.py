@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from atlas.schemas import TechniqueId
 from scripts.schemas import AttackPhaseID, MitigationCategoryType, ModelComponentID, SecurityObjectiveID
 
@@ -76,6 +76,16 @@ class MitigationRelationshipSchema(BaseModel):
     categories: List[MitigationCategoryType] = Field(
         description="List of applicable category types for this MITIGATES relationship. Multiple entries are only allowed if there is strong, undeniable evidence."
     )
+
+    @field_validator("categories", mode="before")
+    @classmethod
+    def normalize_categories(cls, value):
+        if isinstance(value, list):
+            return [
+                item.lower() if isinstance(item, str) else item
+                for item in value
+            ]
+        return value
     
     description: str = Field(
         description="A concise, informative summary explaining the mitigation strategy for this link."

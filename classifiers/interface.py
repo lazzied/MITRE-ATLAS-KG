@@ -20,6 +20,7 @@ class BaseRelationshipClassifier(ABC):
         self.include_reasoning = include_reasoning
         
     def get_context_from_entity(self, entity_id: str, entity_type: EntityType | None = None):
+        
         context_cypher_read = ENTITY_CONTEXT_QUERIES.get(entity_type, self.context_cypher_read)
         records, _, _ = self.graph_store.client.execute_query(
             context_cypher_read, entity_id=entity_id

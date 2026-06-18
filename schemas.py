@@ -119,6 +119,7 @@ class RelationshipType(Enum):
     VIOLATES = "violates" # a technique violates a certain security objective (confidentiality, integrity, availability)
     IS_SIMILAR_TO = "is_similar_to" # a technique is similar to technique
     
+    
 ObjectId = (
     TacticId | TechniqueId | MitigationId | CaseStudyId | PlatformID | LifecyclePhaseID | ModelComponentID | SecurityObjectiveID | AttackPhaseID
 )

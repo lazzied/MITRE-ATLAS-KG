@@ -6,13 +6,13 @@ from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from atlas.enums import AtlasRelationshipType
 from atlas.schemas import AtlasRelationship, CaseStudy, Mitigation, Tactic, Technique
-from scripts.atlas_entities import AtlasPydanticTransformer
-from scripts.derived_entities import (
+from scripts.entities.atlas_entities import AtlasPydanticTransformer
+from scripts.entities.derived_entities import (
 
     transform_lifecycle_phase, 
     transform_platform
 )
-from scripts.new_entities import (
+from scripts.entities.new_entities import (
     transform_attack_phase,
     transform_model_component,
     transform_security_objective,
@@ -147,8 +147,9 @@ class Neo4jInserter:
             return True
 
         source_id, target_id, mapped_type, _ = parts
-        query = f"""
-        MATCH (source {{id: $source_id}})-[r:{mapped_type}]->(target {{id: $target_id}})
+        query = """
+        MATCH (source {id: $source_id})-[r]->(target {id: $target_id})
+        WHERE type(r) = $mapped_type
         RETURN count(r) AS rel_count
         """
         with self.driver.session() as session:
@@ -156,6 +157,7 @@ class Neo4jInserter:
                 query,
                 source_id=source_id,
                 target_id=target_id,
+                mapped_type=mapped_type,
             ).single()
 
         return bool(record and record["rel_count"] > 0)

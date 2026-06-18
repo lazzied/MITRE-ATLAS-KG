@@ -20,7 +20,7 @@ class TechniqueSimilarityCalculator(BaseRelationshipClassifier):
         
         self.similarity_math = TechniqueSimilarityCalculations()
 
-    def get_context_from_entity(self, entity_id: str):
+    def get_context_from_entity(self, entity_id: str, entity_type: EntityType | None = None):
         topology, technique_properties = super().get_context_from_entity(entity_id)
         if not technique_properties:
             return topology, {}

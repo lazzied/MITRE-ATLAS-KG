@@ -27,7 +27,7 @@ class CaseStudySimilarityCalculator(BaseRelationshipClassifier):
             weight_soft=0.40
         )
 
-    def get_context_from_entity(self, entity_id: str):
+    def get_context_from_entity(self, entity_id: str, entity_type: EntityType | None = None):
         topology, case_study_properties = super().get_context_from_entity(entity_id)
         if not case_study_properties:
             return topology, {}

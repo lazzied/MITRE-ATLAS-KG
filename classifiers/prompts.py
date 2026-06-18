@@ -9,6 +9,11 @@ TARGET RELATIONSHIP EVALUATION: MITIGATION -[MITIGATES]-> TECHNIQUE
 - HARDENING: Mechanisms that minimize an attack's effectiveness or blast radius during execution, even if the technique successfully triggers.
 - DETECTIVE: Monitoring, auditing, and logging infrastructures that identify active execution footprints or subsequent integrity violations.
 
+When writing JSON, categories MUST use these exact lowercase values only:
+- "preventive"
+- "hardening"
+- "detective"
+
 === FEW-SHOT EXAMPLES FOR SYSTEM ALIGNMENT ===
 
 Example 1: Sanitize Training Data -[MITIGATES]-> Poisoning, label flip
@@ -40,6 +45,8 @@ technique, including its ALTERS, HAS_ACCESS_TO, and OCCURS_AT edges.
 === LIVE EXTRACTION PROCESS ===
 Analyze the attributes of "{mitigation_id}" and how it intercepts the execution path of "{technique_id}".
 Deduce the correct categories and provide descriptions for each.
+
+Return only valid compact JSON matching the requested schema. Do not use uppercase category values in JSON.
 """
 
 

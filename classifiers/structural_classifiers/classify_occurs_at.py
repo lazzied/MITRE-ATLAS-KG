@@ -18,9 +18,7 @@ class OccursAtClassifier(BaseRelationshipClassifier):
         self.prompt_template = OCCURS_AT_PROMPT              
             
     def process_single_relationship(self, source_id: str) -> List[Relationship] | None:
-        """
-        Executes structured LLM inference on a technique's graph context to discover OCCURS_AT lifecycle linkages.
-        """
+
         program = LLMTextCompletionProgram.from_defaults(
             output_cls=OccursAtResponseSchema,
             prompt_template_str=self.prompt_template,
