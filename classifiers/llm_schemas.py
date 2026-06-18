@@ -156,3 +156,68 @@ class AltersResponseSchema(BaseModel):
     reasoning: str = Field(
         description="High-level evaluation logic tying the graph context evidence to the final component alteration mappings."
     )
+    
+       
+class TechniqueSimilarityRelationshipSchema(BaseModel):
+    """
+    Represents a single discovered similarity link pointing to a functionally related ATLAS Technique.
+    """
+    source_entity: TechniqueId = Field(
+        description="The source ATLAS Technique identifier from which this similarity relationship originates."
+    )
+    target_entity: TechniqueId = Field(
+        description="The target ATLAS Technique identifier that shares functional or structural operational execution steps."
+    )
+    similarity_coeff: float = Field(
+        description="A floating-point metric value indicating the degree of functional overlap between the two techniques."
+    )
+    description: str = Field(
+        description="A clear, structural architectural justification summarizing the shared mechanical overlap between both nodes."
+    )
+    reasoning: str = Field(
+        description="Brief sentence connecting shared model components, visibility prerequisites, or tactics directly to this mapping."
+    )
+
+
+class TechniqueSimilarityResponseSchema(BaseModel):
+    """
+    The full payload structure returned containing all discovered technique similarity relationships.
+    """
+    entity_relationships: List[TechniqueSimilarityRelationshipSchema] = Field(
+        description="List of valid technique similarity connections supported by shared graph contexts and operational characteristics."
+    )
+    reasoning: str = Field(
+        description="A concise summary explaining why these techniques are functionally similar based on their shared model components, visibility prerequisites, lifecycle phases, and tactics."
+    )
+    
+class CaseStudySimilarityRelationshipSchema(BaseModel):
+    """
+    Represents a single discovered campaign similarity boundary link pointing to an overlapping Case Study.
+    """
+    source_entity: str = Field(
+        description="The source MITRE ATLAS Case Study identifier from which this campaign relationship originates."
+    )
+    target_entity: str = Field(
+        description="The target MITRE ATLAS Case Study identifier that demonstrates high behavioral or operational crossover."
+    )
+    similarity_coeff: float = Field(
+        description="A floating-point metric value tracking the final blended mathematical matrix similarity score."
+    )
+    description: str = Field(
+        description="A professional, narrative paragraph explaining the behavioral overlap between both case studies using their techniques."
+    )
+    reasoning: str = Field(
+        description="Brief sentence connecting shared adversarial vectors or targeted model pipeline components back to graph telemetry."
+    )
+
+
+class CaseStudySimilarityResponseSchema(BaseModel):
+    """
+    The full structured payload contract returned from the LLM validating operational campaign crossovers.
+    """
+    entity_relationships: List[CaseStudySimilarityRelationshipSchema] = Field(
+        description="List containing valid case study similarity connections supported by exact intersections and soft matches."
+    )
+    reasoning: str = Field(
+        description="High-level threat intelligence logical tracking explaining why these two specific attack histories cluster together."
+    )

@@ -3,29 +3,27 @@ from typing import Any, Dict, Set
 
 class TechniqueSimilarityCalculations:
     def __init__(self):
-            # intuitive Jaccard index weights;
-        self.weight_alters = 0.35       # Active modification footprint in the ML pipeline
-        self.weight_access = 0.35       # Prerequisite infrastructure visibility
-        self.weight_occurs_at = 0.15    # Environment timeline context (Training vs Inference)
-        self.weight_achieves = 0.15     # Strategic tactical objective alignment
+        # These weights decide how much each shared graph signal contributes to similarity.
+        self.weight_alters = 0.35
+        self.weight_access = 0.35
+        self.weight_occurs_at = 0.15
+        self.weight_achieves = 0.15
         
-        # Hierarchical proximity adjustments; this is when two techniques share the same parent
+        # Hierarchical proximity adjustments for explicit subtechnique mapping
         self.sibling_hierarchy_boost = 0.15
         
     def calculate_jaccard_index(self, set_a: Set[Any], set_b: Set[Any]) -> float:
         """
         Calculates the Jaccard similarity index between two standard Python sets.
-        
-        $$J(A, B) = \frac{|A \cap B|}{|A \cup B|}$$
         """
         if len(set_a) == 0 and len(set_b) == 0:
             return 1.0
         if len(set_a) == 0 or len(set_b) == 0:
             return 0.0
         
-        overlapping_elements = set_a.intersection(set_b)
-        all_unique_elements = set_a.union(set_b)
-        return len(overlapping_elements) / len(all_unique_elements)
+        shared_items = set_a.intersection(set_b)
+        all_items = set_a.union(set_b)
+        return len(shared_items) / len(all_items)
     
     def calculate_base_weighted_score(self, overlaps: Dict[str, float]) -> float:
         """
@@ -36,7 +34,7 @@ class TechniqueSimilarityCalculations:
             (self.weight_access * overlaps["access_overlap"]) +
             (self.weight_occurs_at * overlaps["occurs_at_overlap"]) +
             (self.weight_achieves * overlaps["achieves_overlap"])
-            )
+        )
 
     def apply_hierarchical_adjustments(self, base_score: float, are_siblings: bool) -> float:
         """
@@ -46,19 +44,13 @@ class TechniqueSimilarityCalculations:
             return base_score
         final_score = base_score + self.sibling_hierarchy_boost
         return min(final_score, 1.0)
-
-    def compute_technique_similarity(self, technique_id_1: str, technique_id_2: str) -> Dict[str, Any]:
+    
+    def compute_technique_similarity(self, profile_1: Dict[str, Any], profile_2: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Retrieves the profile vectors of both techniques, evaluates dimensional weights, 
-        and calculates structural similarity adjusted for subtechnique hierarchies.
+        Evaluates dimensional Jaccard indices across clean dictionary profiles.
         """
-        profile_1 = self.fetch_technique_relationships(technique_id_1)
-        profile_2 = self.fetch_technique_relationships(technique_id_2)
-
-        if profile_1 is None:
-            raise ValueError(f"Technique ID '{technique_id_1}' was not found in the database.")
-        if profile_2 is None:
-            raise ValueError(f"Technique ID '{technique_id_2}' was not found in the database.")
+        if profile_1 is None or profile_2 is None:
+            raise ValueError("Both technique profiles must be populated and valid dictionaries.")
 
         overlaps = {
             "alters_overlap": self.calculate_jaccard_index(profile_1["alters_set"], profile_2["alters_set"]),
@@ -67,15 +59,102 @@ class TechniqueSimilarityCalculations:
             "achieves_overlap": self.calculate_jaccard_index(profile_1["achieves_set"], profile_2["achieves_set"])
         }
 
-        weighted_base_score = self.calculate_base_weighted_score(overlaps)
-        are_siblings = profile_1["parent_id"] is not None and profile_1["parent_id"] == profile_2["parent_id"]
-        final_similarity_score = self.apply_hierarchical_adjustments(weighted_base_score, are_siblings)
+        base_similarity_score = self.calculate_base_weighted_score(overlaps)
+        
+        # Sibling subtechniques often behave alike, so they get a small boost.
+        are_siblings = (
+            profile_1.get("parent_id") is not None and 
+            profile_1.get("parent_id") == profile_2.get("parent_id")
+        )
+        final_similarity_score = self.apply_hierarchical_adjustments(base_similarity_score, are_siblings)
 
         return {
-            "comparison_pair": (technique_id_1, technique_id_2),
-            "profiles": (profile_1, profile_2),
-            "base_score": round(weighted_base_score, 4),
+            "comparison_pair": (profile_1["tech_id"], profile_2["tech_id"]),
+            "base_score": round(base_similarity_score, 4),
             "final_score": round(final_similarity_score, 4),
             "is_sibling_subtechnique": are_siblings,
             "metric_breakdown": {key: round(val, 4) for key, val in overlaps.items()}
+        }
+        
+
+class CaseStudySimilarityCalculations:
+    
+    def __init__(self, tech_calculator=None, weight_exact: float = 0.60, weight_soft: float = 0.40):
+        self.weight_tier_1_exact = weight_exact
+        self.weight_tier_2_soft = weight_soft
+        
+        # Internal instance fallback link to pure technique calculations
+        self.tech_math = TechniqueSimilarityCalculations()
+        
+        # The higher-level database profile parser engine passing contextual data down
+        self.tech_calculator = tech_calculator
+
+    def compute_case_study_similarity(self, profile_1: Dict[str, Any], profile_2: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Calculates the definitive blended similarity coefficient using exact intersections 
+        and cross-compared technique similarity fallbacks.
+        """
+        source_techniques = profile_1["techniques"]
+        target_techniques = profile_2["techniques"]
+
+        if not source_techniques and not target_techniques:
+            return {"final_score": 1.0, "exact_shared_techniques": [], "soft_matched_pairs": []}
+        if not source_techniques or not target_techniques:
+            return {"final_score": 0.0, "exact_shared_techniques": [], "soft_matched_pairs": []}
+
+        # First, reward case studies that demonstrate the exact same techniques.
+        exact_shared = source_techniques.intersection(target_techniques)
+        
+        technique_union_size = len(source_techniques.union(target_techniques))
+        exact_overlap_score = len(exact_shared) / technique_union_size if technique_union_size > 0 else 0.0
+
+        # Then, look for different techniques that are still behaviorally similar.
+        source_only_techniques = source_techniques - exact_shared
+        target_only_techniques = target_techniques - exact_shared
+        
+        soft_match_scores = []
+        soft_matched_details = []
+
+        for source_technique in source_only_techniques:
+            best_score = 0.0
+            best_matching_technique = None
+            for target_technique in target_only_techniques:
+                try:
+                    if self.tech_calculator and hasattr(self.tech_calculator, 'get_context_from_entity'):
+                        _, source_profile = self.tech_calculator.get_context_from_entity(source_technique)
+                        _, target_profile = self.tech_calculator.get_context_from_entity(target_technique)
+                        
+                        # Process using the local pure math instance
+                        similarity_analysis = self.tech_math.compute_technique_similarity(source_profile, target_profile)
+                        similarity_score = similarity_analysis["final_score"]
+                        
+                        if similarity_score > best_score:
+                            best_score = similarity_score
+                            best_matching_technique = target_technique
+                except Exception:
+                    continue
+            
+            # Keep meaningful behavioral overlaps
+            if best_score >= 0.30:
+                soft_match_scores.append(best_score)
+                soft_matched_details.append({
+                    "tech": source_technique,
+                    "matched_to": best_matching_technique,
+                    "score": best_score
+                })
+
+        soft_overlap_score = sum(soft_match_scores) / len(soft_match_scores) if soft_match_scores else 0.0
+
+        # Blend exact overlap and softer behavioral overlap into one final score.
+        final_blended_score = (self.weight_tier_1_exact * exact_overlap_score) + (self.weight_tier_2_soft * soft_overlap_score)
+
+        return {
+            "comparison_pair": (profile_1["case_id"], profile_2["case_id"]),
+            "name_1": profile_1.get("name", "Unknown"),
+            "name_2": profile_2.get("name", "Unknown"),
+            "final_score": round(min(final_blended_score, 1.0), 4),
+            "tier_1_exact_score": round(exact_overlap_score, 4),
+            "tier_2_soft_score": round(soft_overlap_score, 4),
+            "exact_shared_techniques": list(exact_shared),
+            "soft_matched_pairs": soft_matched_details
         }

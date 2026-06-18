@@ -5,7 +5,7 @@ from scripts.classifiers.context_queries import TECHNIQUE_CONTEXT_QUERY
 from scripts.classifiers.initialization import get_connections
 from scripts.classifiers.interface import BaseRelationshipClassifier
 from scripts.classifiers.llm_schemas import OccursAtResponseSchema
-from scripts.classifiers.prompts import CLASSIFY_OCCURS_AT_PROMPT
+from scripts.classifiers.prompts import OCCURS_AT_PROMPT
 from scripts.schemas import EntityBooleanType, EntityType, Relationship, RelationshipType
 
 
@@ -15,9 +15,9 @@ class OccursAtClassifier(BaseRelationshipClassifier):
     """
     def __init__(self, graph_store, llm):
         super().__init__(graph_store, llm, context_cypher_read=TECHNIQUE_CONTEXT_QUERY)
-        self.prompt_template = CLASSIFY_OCCURS_AT_PROMPT              
+        self.prompt_template = OCCURS_AT_PROMPT              
             
-    def process_single_relationship(self, source_id: str, target_id: str | None = None) -> List[Relationship] | None:
+    def process_single_relationship(self, source_id: str) -> List[Relationship] | None:
         """
         Executes structured LLM inference on a technique's graph context to discover OCCURS_AT lifecycle linkages.
         """
@@ -32,7 +32,7 @@ class OccursAtClassifier(BaseRelationshipClassifier):
         graph_context = self.build_context_prompt_from_entity(
             entity_boolean_type=EntityBooleanType.SOURCE,
             entity_id=source_id,
-            entity_type=EntityType.TECHIQUE
+            entity_type=EntityType.TECHNIQUE
         )
 
         for attempt in range(3):

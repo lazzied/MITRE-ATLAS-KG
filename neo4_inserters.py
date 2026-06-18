@@ -18,8 +18,8 @@ from scripts.new_entities import (
     generate_security_objective_dataclasses,
 )
 from scripts.classifiers.structural_classifiers.classify_alters import AltersClassifier
-from scripts.classifiers.structural_classifiers.classify_has_access_to import AccessClassifier
 from scripts.classifiers.structural_classifiers.classify_mitigates import MitigationClassifier
+from scripts.classifiers.structural_classifiers.classify_has_access_to import HasAccessToClassifier
 from scripts.classifiers.structural_classifiers.classify_occurs_at import OccursAtClassifier
 from scripts.classifiers.structural_classifiers.classify_violates import ViolatesClassifier
 
@@ -109,7 +109,7 @@ class Neo4jClassifiersInserter(Neo4jInserter):
         return self.insert_structural_classifiers_relationships(AltersClassifier, "ALTERS")
 
     def insert_has_access_to_relationships(self):
-        return self.insert_structural_classifiers_relationships(AccessClassifier, "HAS_ACCESS_TO")
+        return self.insert_structural_classifiers_relationships(HasAccessToClassifier, "HAS_ACCESS_TO")
 
     def update_mitigates_relationships(self):
         return self.insert_structural_classifiers_relationships(MitigationClassifier, "MITIGATES")

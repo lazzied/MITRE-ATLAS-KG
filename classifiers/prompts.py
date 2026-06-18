@@ -291,40 +291,69 @@ TECHNIQUE_SIMILARITY_PROMPT = """
 You are an expert cybersecurity architect specializing in adversarial machine learning and the MITRE ATLAS framework.
 Your task is to analyze two distinct attack techniques and provide a concise, text-grounded justification explaining why they are structurally and behaviorally similar.
 
-You are given the exact mathematical similarity coefficient and the structural relationship footprints retrieved from our system graph database.
+You are given the combined local graph topologies and attributes of both entities below:
 
-TARGET TECHNIQUE 1:
-- ID: {technique_id_1}
-- Structural Vectors: {profile_1}
-
-COMPARED TECHNIQUE 2:
-- ID: {technique_id_2}
-- Structural Vectors: {profile_2}
+GRAPH CONTEXT METADATA:
+{graph_context}
 
 EVALUATION METRICS:
-- Final Calculated Similarity Coefficient: {final_score} (On a scale of 0.0 to 1.0, where 1.0 is identical)
+- Source Technique ID: {technique_id_1}
+- Target Technique ID: {technique_id_2}
+- Final Calculated Similarity Coefficient: {final_score} (Scale 0.0 to 1.0)
 
 CRITICAL INSTRUCTIONS:
-1. Review the shared assets between both techniques: look for overlapping tactics, lifecycle phases (Training vs Inference), infrastructure access requirements, and targeted model components (e.g., datasets, hyperparameters, architecture).
-2. Write a single, cohesive, high-quality explanation summarizing why these techniques are clustered together.
-3. Focus purely on technical, behavioral, and structural commonalities. 
-4. Do not include or repeat any JSON markup, markdown syntax headers, or wrapper text outside of your direct statement.
+1. Review the shared assets between both techniques: look for overlapping tactics, lifecycle phases (Training vs Inference), infrastructure access requirements, and targeted model components.
+2. Focus purely on technical, behavioral, and structural commonalities to justify the link.
+3. Your output must strictly fulfill the following structural Pydantic schema layout, matching an inline array structure. Do not generate markdown code blocks or wrapper text outside the JSON payload.
 
-Your output must strictly fulfill the following Pydantic schema contract:
-{{"justification": "Your clear, text-grounded cybersecurity reasoning here."}}
+Target Output JSON Schema Contract:
+{{
+    "entity_relationships": [
+        {{
+            "source_entity": "{technique_id_1}",
+            "target_entity": "{technique_id_2}",
+            "similarity_coeff": {final_score},
+            "description": "Your clear, text-grounded architectural justification here.",
+            "reasoning": "Brief technical sentence linking back to evidence parameters found in the graph context."
+        }}
+    ],
+    "reasoning": "Overall high-level evaluation logic tying both models together."
+}}
 """
 
-CASE_STUDY_SIMILARITY_PROMPT = """ You are an elite cyber threat intelligence analyst tracking adversarial machine learning campaigns.
-        Our graph similarity matrices have calculated a definitive behavioral overlap score of {final_score} between two case studies.
 
-        CASE STUDY 1: {name_1} ({id_1})
-        CASE STUDY 2: {name_2} ({id_2})
+CASE_STUDY_SIMILARITY_PROMPT = """
+You are an elite cyber threat intelligence analyst tracking adversarial machine learning campaigns within the MITRE ATLAS framework.
+Your task is to analyze two historical attack profiles and justify why their operational footprints align.
 
-        STRUCTURAL MATRIX ANALYSIS:
-        - Exact Overlapping Techniques: {exact_techniques}
-        - Soft-Matched Closest Techniques: {soft_matches}
+You are given the structural matrix analytics, alongside the local graph configurations of both profiles below:
 
-        Your task is to write a single, professional paragraph explaining why these two campaigns are clustered together.
-        Focus on the shared adversarial vectors, targeted pipeline components, or operational intentions demonstrated. 
-        Do not mention, question, or change the mathematical score provided. Output your evaluation purely inside the schema contract.
+GRAPH CONTEXT METADATA:
+{graph_context}
+
+EVALUATION METRICS:
+- Source Case Study: {name_1} ({id_1})
+- Target Case Study: {name_2} ({id_2})
+- Exact Overlapping Techniques: {exact_techniques}
+- Soft-Matched Closest Techniques: {soft_matches}
+- Blended Mathematical Overlap Score: {final_score} (Scale 0.0 to 1.0)
+
+CRITICAL INSTRUCTIONS:
+1. Focus on the shared adversarial vectors, targeted pipeline vulnerabilities, or operational intentions demonstrated across both campaigns.
+2. Do not mention, question, or parse the mathematical score directly within your final response descriptions.
+3. Your output must strictly fulfill the following structural Pydantic schema layout, matching an inline array structure.
+
+Target Output JSON Schema Contract:
+{{
+    "entity_relationships": [
+        {{
+            "source_entity": "{id_1}",
+            "target_entity": "{id_2}",
+            "similarity_coeff": {final_score},
+            "description": "Your professional threat intelligence narrative paragraph here explaining campaign crossovers.",
+            "reasoning": "Brief technical sentence linking back to evidence elements found in the graph context topology."
+        }}
+    ],
+    "reasoning": "High-level threat intelligence logical tracking explaining why these two specific attack histories cluster together."
+}}
 """

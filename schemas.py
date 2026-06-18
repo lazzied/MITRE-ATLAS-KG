@@ -38,14 +38,6 @@ class AttackPhaseID (Enum):
     INFERENCE = "inference"
     TRAINING = "training"
 
-class LifeCyclePhaseID(Enum):
-    DATA_UNDERSTANDING = "data_understanding"
-    DATA_PREPARATION = "data_preparation"
-    MODEL_ENGINEERING = "ai_model_engineering"
-    MODEL_EVALUATION = "ai_model_evaluation"
-    DEPLOYMENT = "deployment"
-    MONITORING = "monitoring_and_maintenance"
-
 @dataclass
 class Platform():
     id: PlatformID
@@ -102,7 +94,15 @@ class MitigationCategoryType(Enum):
     DETECTIVE  = "detective"    # this is monitoring; identifies attacks or integrity violations
 
 class EntityType(Enum):
-    pass
+    ATTACK_PHASE = "attack_phase"
+    SECURITY_OBJECTIVE = "security_objective"
+    MODEL_COMPONENT = "model_component"
+    PLATFORM = "platform"
+    LIFECYCLE_PHASE = "lifecycle_phase"
+    CASE_STUDY = "case_study"
+    TECHNIQUE = "technique"
+    MITIGATION = "mitigation"
+    TACTIC = "tactic"
 
 class RelationshipType(Enum):
     # define the relationship types between the entities (edges in the graph) an extended version of the ATLAS RELATIONSHIP TYPE

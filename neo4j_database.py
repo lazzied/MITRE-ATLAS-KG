@@ -46,7 +46,6 @@ class Neo4jInserter:
         RelationshipType.HAS_ACCESS_TO: "HAS_ACCESS_TO",
         RelationshipType.ALTERS: "ALTERS",
         RelationshipType.IS_SIMILAR_TO: "IS_SIMILAR_TO",
-        RelationshipType.SIMILAR_TO: "SIMILAR_TO",
         RelationshipType.OCCURS_AT: "OCCURS_AT",
         RelationshipType.VIOLATES: "VIOLATES",
     }
@@ -103,8 +102,7 @@ class Neo4jInserter:
                 props["required"] = relationship.required
             if relationship.similar_to_coef is not None:
                 props["similar_to_coef"] = relationship.similar_to_coef
-            if relationship.justification:
-                props["justification"] = relationship.justification
+
 
         # Case B: Handle standard core AtlasRelationship components
         else:
